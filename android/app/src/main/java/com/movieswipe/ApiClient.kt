@@ -15,6 +15,24 @@ class ApiClient(private var baseUrl: String) {
     fun setUrl(url: String) { baseUrl = url }
     fun getBaseUrl(): String = baseUrl
 
+    fun refreshPlex(callback: (Boolean, String?) -> Unit) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/plex/refresh")
+            .post(RequestBody.create(null, ByteArray(0)))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                callback(false, e.message)
+            }
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    callback(it.isSuccessful, if (it.isSuccessful) null else "HTTP ${it.code}")
+                }
+            }
+        })
+    }
+
     fun getMovies(skip: Int = 0, limit: Int = 20, callback: (MoviesResponse?, String?) -> Unit) {
         val request = Request.Builder()
             .url("$baseUrl/api/movies?skip=$skip&limit=$limit")

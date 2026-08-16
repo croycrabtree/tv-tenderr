@@ -1,5 +1,5 @@
-"""Movie Swipe - Backend API
-Connects to Radarr + Plex to serve movies for the swipe interface.
+"""TV Tenderr - Backend API
+Connects to Radarr + Sonarr + Plex to serve movies/shows for the swipe interface.
 """
 import os
 import json
@@ -9,14 +9,18 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, Response
 from pathlib import Path
 from datetime import datetime
+from dotenv import load_dotenv
 
-app = FastAPI(title="Movie Swipe")
+# Load .env file if it exists
+load_dotenv(Path(__file__).parent / ".env")
 
-# Config - set these or use env vars
+app = FastAPI(title="TV Tenderr")
+
+# Config - set these in .env or use env vars
 RADARR_URL = os.getenv("RADARR_URL", "http://localhost:7878")
-RADARR_KEY = os.getenv("RADARR_KEY", "YOUR_RADARR_API_KEY")
+RADARR_KEY = os.getenv("RADARR_KEY", "")
 SONARR_URL = os.getenv("SONARR_URL", "http://localhost:8989")
-SONARR_KEY = os.getenv("SONARR_KEY", "YOUR_SONARR_API_KEY")
+SONARR_KEY = os.getenv("SONARR_KEY", "")
 PLEX_URL = os.getenv("PLEX_URL", "http://localhost:32400")
 PLEX_TOKEN = os.getenv("PLEX_TOKEN", "")
 
@@ -447,21 +451,28 @@ async def get_config():
     """Get app configuration."""
     return {
         "radarrUrl": RADARR_URL,
+        "radarrKey": RADARR_KEY,
+        "sonarrUrl": SONARR_URL,
+        "sonarrKey": SONARR_KEY,
         "plexUrl": PLEX_URL,
-        "hasPlexToken": bool(PLEX_TOKEN),
+        "plexToken": PLEX_TOKEN,
     }
 
 @app.post("/api/config")
 async def update_config(config: dict):
     """Update configuration."""
-    global RADARR_URL, RADARR_KEY, PLEX_URL, PLEX_TOKEN
-    if "radarrUrl" in config:
+    global RADARR_URL, RADARR_KEY, SONARR_URL, SONARR_KEY, PLEX_URL, PLEX_TOKEN
+    if "radarrUrl" in config and config["radarrUrl"]:
         RADARR_URL = config["radarrUrl"]
-    if "radarrKey" in config:
+    if "radarrKey" in config and config["radarrKey"]:
         RADARR_KEY = config["radarrKey"]
-    if "plexUrl" in config:
+    if "sonarrUrl" in config and config["sonarrUrl"]:
+        SONARR_URL = config["sonarrUrl"]
+    if "sonarrKey" in config and config["sonarrKey"]:
+        SONARR_KEY = config["sonarrKey"]
+    if "plexUrl" in config and config["plexUrl"]:
         PLEX_URL = config["plexUrl"]
-    if "plexToken" in config:
+    if "plexToken" in config and config["plexToken"]:
         PLEX_TOKEN = config["plexToken"]
     return {"ok": True}
 
@@ -830,6 +841,22 @@ async def get_show_history():
     history = [h for h in history if h.get("action") != "skip"]
     history.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
     return {"history": history}
+
+
+@app.post("/api/plex/refresh")
+async def plex_refresh():
+    """Trigger Plex library refresh for all sections."""
+    if not PLEX_TOKEN:
+        raise HTTPException(status_code=400, detail="No Plex token configured")
+
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"{PLEX_URL}/library/sections/all/refresh",
+            headers={"X-Plex-Token": PLEX_TOKEN},
+            timeout=15
+        )
+
+    return {"ok": True, "status": r.status_code}
 
 
 if __name__ == "__main__":

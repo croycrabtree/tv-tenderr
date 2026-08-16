@@ -53,6 +53,22 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        binding.btnRefresh.setOnClickListener {
+            api.refreshPlex { ok, _ ->
+                runOnUiThread {
+                    if (ok) {
+                        android.widget.Toast.makeText(this, "🔄 Plex library refreshed", android.widget.Toast.LENGTH_SHORT).show()
+                    } else {
+                        android.widget.Toast.makeText(this, "❌ Refresh failed", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        binding.btnSettings.setOnClickListener {
+            startActivity(android.content.Intent(this, SettingsActivity::class.java))
+        }
+
         binding.tvMode.setOnClickListener {
             mode = if (mode == "movies") "shows" else "movies"
             binding.tvMode.text = if (mode == "movies") "Movies" else "Shows"

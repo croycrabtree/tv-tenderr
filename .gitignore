@@ -17,3 +17,5 @@ __pycache__/
 data/decisions.json
 data/show_decisions.json
 *.apk
+.env
+data/
