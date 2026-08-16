@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/undoBanner"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="#333333"
+    android:padding="12dp"
+    android:visibility="gone"
+    android:elevation="8dp">
+
+    <TextView
+        android:id="@+id/tvUndoMessage"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <Button
+        android:id="@+id/btnUndoAction"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="UNDO"
+        android:textColor="#2ecc71"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:background="?attr/selectableItemBackground"
+        android:minWidth="70dp" />
+
+</LinearLayout>
