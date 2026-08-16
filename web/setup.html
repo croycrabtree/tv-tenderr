@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Tenderr - Setup</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .setup-card { background: #16213e; border-radius: 12px; padding: 40px; max-width: 500px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .logo { font-size: 32px; font-weight: 800; color: #e94560; margin-bottom: 8px; }
+        .subtitle { color: #888; font-size: 14px; margin-bottom: 32px; }
+        .section { margin-bottom: 24px; }
+        .section-title { font-size: 14px; font-weight: 600; color: #2ecc71; margin-bottom: 12px; }
+        .field { margin-bottom: 12px; }
+        .field label { display: block; font-size: 12px; color: #aaa; margin-bottom: 4px; }
+        .field input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px 12px; color: #eee; font-size: 14px; }
+        .field input:focus { outline: none; border-color: #3498db; }
+        .field input::placeholder { color: #555; }
+        .btn { width: 100%; padding: 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 16px; font-weight: 600; margin-top: 8px; }
+        .btn-primary { background: #e94560; color: #fff; }
+        .btn-primary:hover { background: #c0392b; }
+        .btn-secondary { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #eee; }
+        .btn-secondary:hover { background: rgba(255,255,255,0.05); }
+        .help { font-size: 12px; color: #555; margin-top: 4px; }
+        .help a { color: #3498db; text-decoration: none; }
+        .status { padding: 12px; border-radius: 6px; margin-top: 16px; font-size: 13px; display: none; }
+        .status.success { background: rgba(46,204,113,0.2); border: 1px solid #2ecc71; color: #2ecc71; display: block; }
+        .status.error { background: rgba(233,69,96,0.2); border: 1px solid #e94560; color: #e94560; display: block; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .progress { display: flex; gap: 8px; margin-bottom: 24px; }
+        .progress-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.1); }
+        .progress-dot.active { background: #e94560; }
+        .progress-dot.done { background: #2ecc71; }
+    </style>
+</head>
+<body>
+    <div class="setup-card">
+        <div class="logo">TV Tenderr</div>
+        <div class="subtitle">Let's get your media library manager set up</div>
+
+        <div class="progress">
+            <div class="progress-dot active" id="dot1"></div>
+            <div class="progress-dot" id="dot2"></div>
+            <div class="progress-dot" id="dot3"></div>
+        </div>
+
+        <!-- Step 1: Services -->
+        <div class="step active" id="step1">
+            <div class="section">
+                <div class="section-title">🎬 Radarr (Movies)</div>
+                <div class="field">
+                    <label>URL</label>
+                    <input type="text" id="radarrUrl" placeholder="http://192.168.1.100:7878">
+                </div>
+                <div class="field">
+                    <label>API Key</label>
+                    <input type="text" id="radarrKey" placeholder="Settings → General → API Key">
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">📺 Sonarr (TV Shows)</div>
+                <div class="field">
+                    <label>URL</label>
+                    <input type="text" id="sonarrUrl" placeholder="http://192.168.1.100:8989">
+                </div>
+                <div class="field">
+                    <label>API Key</label>
+                    <input type="text" id="sonarrKey" placeholder="Settings → General → API Key">
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="nextStep(2)">Next →</button>
+        </div>
+
+        <!-- Step 2: Plex & TMDb -->
+        <div class="step" id="step2">
+            <div class="section">
+                <div class="section-title">🎞️ Plex</div>
+                <div class="field">
+                    <label>URL</label>
+                    <input type="text" id="plexUrl" placeholder="http://192.168.1.100:32400">
+                </div>
+                <div class="field">
+                    <label>Token</label>
+                    <input type="text" id="plexToken" placeholder="Find at plex.tv/claim or in Plex settings">
+                    <div class="help">Find your token: <a href="https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/" target="_blank">Plex Token Guide</a></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">🔍 TMDb (Discover)</div>
+                <div class="field">
+                    <label>API Key</label>
+                    <input type="text" id="tmdbKey" placeholder="Get free at themoviedb.org">
+                    <div class="help">Free API key: <a href="https://www.themoviedb.org/settings/api" target="_blank">TMDb API Settings</a></div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-secondary" onclick="nextStep(1)" style="flex:1">← Back</button>
+                <button class="btn btn-primary" onclick="nextStep(3)" style="flex:2">Next →</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Quality & Save -->
+        <div class="step" id="step3">
+            <div class="section">
+                <div class="section-title">⚙️ Quality Settings</div>
+                <div class="field">
+                    <label>Radarr Quality Profile</label>
+                    <select id="radarrQuality" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:10px;color:#eee;font-size:14px">
+                        <option value="1">Any</option>
+                        <option value="2">SD</option>
+                        <option value="3">HD-720p</option>
+                        <option value="4" selected>HD-1080p</option>
+                        <option value="5">Ultra-HD</option>
+                        <option value="6">HD - 720p/1080p</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Sonarr Quality Profile</label>
+                    <select id="sonarrQuality" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:10px;color:#eee;font-size:14px">
+                        <option value="1">Any</option>
+                        <option value="2">SD</option>
+                        <option value="3">HD-720p</option>
+                        <option value="4" selected>HD-1080p</option>
+                        <option value="5">Ultra-HD</option>
+                        <option value="6">HD - 720p/1080p</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Radarr Root Folder</label>
+                    <input type="text" id="radarrRoot" placeholder="H:\" value="H:\">
+                </div>
+                <div class="field">
+                    <label>Sonarr Root Folder</label>
+                    <input type="text" id="sonarrRoot" placeholder="I:\TV" value="I:\TV">
+                </div>
+            </div>
+
+            <div id="status" class="status"></div>
+
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn btn-secondary" onclick="nextStep(2)" style="flex:1">← Back</button>
+                <button class="btn btn-primary" onclick="saveConfig()" style="flex:2">Save & Start</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function nextStep(step) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step' + step).classList.add('active');
+            document.querySelectorAll('.progress-dot').forEach((d, i) => {
+                d.classList.remove('active', 'done');
+                if (i + 1 < step) d.classList.add('done');
+                if (i + 1 === step) d.classList.add('active');
+            });
+        }
+
+        async function saveConfig() {
+            const config = {
+                radarrUrl: document.getElementById('radarrUrl').value.trim(),
+                radarrKey: document.getElementById('radarrKey').value.trim(),
+                sonarrUrl: document.getElementById('sonarrUrl').value.trim(),
+                sonarrKey: document.getElementById('sonarrKey').value.trim(),
+                plexUrl: document.getElementById('plexUrl').value.trim(),
+                plexToken: document.getElementById('plexToken').value.trim(),
+                tmdbKey: document.getElementById('tmdbKey').value.trim(),
+                radarrQualityId: parseInt(document.getElementById('radarrQuality').value),
+                sonarrQualityId: parseInt(document.getElementById('sonarrQuality').value),
+                radarrRootFolder: document.getElementById('radarrRoot').value.trim(),
+                sonarrRootFolder: document.getElementById('sonarrRoot').value.trim()
+            };
+
+            const status = document.getElementById('status');
+
+            // Validate required fields
+            if (!config.radarrUrl || !config.radarrKey) {
+                status.className = 'status error';
+                status.textContent = '❌ Radarr URL and API Key are required';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                if (res.ok) {
+                    // Save to .env file via a special endpoint
+                    await fetch('/api/save-env', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
+
+                    status.className = 'status success';
+                    status.textContent = '✅ Configuration saved! Redirecting...';
+                    setTimeout(() => window.location.href = '/', 1500);
+                } else {
+                    status.className = 'status error';
+                    status.textContent = '❌ Failed to save configuration';
+                }
+            } catch (e) {
+                status.className = 'status error';
+                status.textContent = '❌ Could not connect to server';
+            }
+        }
+    </script>
+</body>
+</html>
