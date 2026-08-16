@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private var selectedProviders = ""
     private var discoverPage = 1
     private var discoverSort = "popularity.desc"
+    private var discoverRequestId = 0  // Track which request is current
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,6 +93,11 @@ class MainActivity : AppCompatActivity() {
             })
             binding.tvDiscoverToggle.visibility = if (mode == "discover") View.VISIBLE else View.GONE
             findViewById<View>(R.id.discoverControls).visibility = if (mode == "discover") View.VISIBLE else View.GONE
+            // Reset discover type when entering discover mode
+            if (mode == "discover") {
+                discoverType = "movies"
+                binding.tvDiscoverToggle.text = "🎬 Movies"
+            }
             currentIndex = 0
             discoverPage = 1
             movies.clear()
@@ -113,6 +119,7 @@ class MainActivity : AppCompatActivity() {
             discoverPage = 1
             discoverItems.clear()
             binding.cardContainer.removeAllViews()
+            isLoading = false  // Allow new request even if previous is loading
             loadDiscover()
         }
 
@@ -760,6 +767,8 @@ class MainActivity : AppCompatActivity() {
     private fun loadDiscover() {
         if (isLoading) return
         isLoading = true
+        discoverRequestId++  // Increment request ID
+        val thisRequest = discoverRequestId
         binding.tvStats.text = "Loading discover..."
 
         val prefs = getSharedPreferences("movieswipe", MODE_PRIVATE)
@@ -768,6 +777,8 @@ class MainActivity : AppCompatActivity() {
         if (discoverType == "movies") {
             api.discoverMovies(page = discoverPage, limit = 20, providers = selectedProviders, sortBy = discoverSort) { response, error ->
                 runOnUiThread {
+                    // Skip if a newer request was made
+                    if (thisRequest != discoverRequestId) return@runOnUiThread
                     isLoading = false
                     if (error != null) { binding.tvStats.text = "Error: $error"; return@runOnUiThread }
                     if (response != null && response.movies.isNotEmpty()) {
@@ -784,6 +795,8 @@ class MainActivity : AppCompatActivity() {
         } else {
             api.discoverShows(page = discoverPage, limit = 20, providers = selectedProviders, sortBy = discoverSort) { response, error ->
                 runOnUiThread {
+                    // Skip if a newer request was made
+                    if (thisRequest != discoverRequestId) return@runOnUiThread
                     isLoading = false
                     if (error != null) { binding.tvStats.text = "Error: $error"; return@runOnUiThread }
                     if (response != null && response.shows.isNotEmpty()) {

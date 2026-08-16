@@ -914,7 +914,7 @@ def get_existing_show_titles():
 
 # ==================== TMDB DISCOVER ENDPOINTS ====================
 
-TMDB_KEY = os.getenv("TMDB_KEY", "YOUR_TMDB_KEY")
+TMDB_KEY = os.getenv("TMDB_KEY", "")
 RADARR_QUALITY_ID = int(os.getenv("RADARR_QUALITY_ID", "4"))
 SONARR_QUALITY_ID = int(os.getenv("SONARR_QUALITY_ID", "4"))
 RADARR_ROOT_FOLDER = os.getenv("RADARR_ROOT_FOLDER", "H:\\")

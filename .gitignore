@@ -19,3 +19,6 @@ data/show_decisions.json
 *.apk
 .env
 data/
+android/gradlew
+android/gradlew.bat
+android/gradle/
