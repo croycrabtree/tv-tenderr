@@ -2,141 +2,79 @@
 
 A Tinder-style app for managing your Plex media library. Swipe through movies and TV shows to keep, block, or clean up your collection.
 
-![TV Tenderr](https://img.shields.io/badge/Platform-Android-green) ![TV Tenderr](https://img.shields.io/badge/Backend-Python-blue)
+![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ## Features
 
-- **Swipe gestures**: Right = Keep, Left = Block, Down = Super Keep, Up = Skip
-- **Movies & Shows**: Toggle between Radarr movies and Sonarr shows
-- **Smart keeps**: Regular keep (6 months) vs Super Keep (forever)
-- **Undo protection**: 10-second undo on blocks and cleans
-- **Clean shows**: Remove episode files but keep monitoring for new episodes
-- **Plex refresh**: Trigger library scan after cleanup sessions
-- **History**: Search, filter, and undo decisions
-- **Settings**: Configure all URLs and API keys from the app
-- **Random order**: Never see the same sequence twice
+- **Swipe gestures** — right to keep, left to block, down for super keep
+- **Plex integration** — refresh libraries from your phone
+- **Radarr & Sonarr** — manage movies and TV shows
+- **Discover** — find new content from all streaming services via TMDb
+- **Quality settings** — configure quality profiles and root folders
+- **Undo protection** — 10-second window before destructive actions
+- **History** — track all decisions with undo capability
+- **Web GUI** — desktop interface with card and grid views
 
 ## Quick Start
 
-### 1. Clone the repo
 ```bash
 git clone https://github.com/croycrabtree/tv-tenderr.git
 cd tv-tenderr
-```
-
-### 2. Run setup
-```bash
-chmod +x setup.sh
 ./setup.sh
-```
-
-### 3. Configure
-Edit `.env` with your actual API keys:
-```bash
-nano .env
-```
-
-### 4. Start the backend
-```bash
+# Edit .env with your credentials
 python3 backend.py
 ```
 
-### 5. Install the APK
-Transfer the APK to your phone and install via ADB:
-```bash
-adb install app-debug.apk
-```
+## Documentation
 
-### 6. Configure the app
-Open TV Tenderr → Settings → Enter your server URL and API keys
+- **[User Guide](USER_GUIDE.md)** — complete usage instructions for app and web GUI
+- **[Setup Guide](#setup)** — installation and configuration
 
-## API Keys
+## Screenshots
 
-### Radarr
-1. Open Radarr web UI
-2. Settings → General → API Key
+### Android App
+- Card-based interface with swipe gestures
+- Movies, Shows, and Discover modes
+- Settings for all service connections
 
-### Sonarr
-1. Open Sonarr web UI
-2. Settings → General → API Key
-
-### Plex Token
-1. Open Plex web UI
-2. Press F12 → Network tab
-3. Click around in Plex
-4. Find `X-Plex-Token` in any request header
-
-## Gesture Guide
-
-| Gesture | Action |
-|---------|--------|
-| Swipe Right | Keep (6 months) |
-| Swipe Left | Block & Delete (10s undo) |
-| Swipe Down | Super Keep (forever) |
-| Swipe Up | Skip |
-| Long-press Keep | Super Keep |
-| Long-press Skip (shows) | Clean files, keep monitoring |
+### Web GUI
+- Dark theme matching Radarr/Sonarr aesthetic
+- Card view (swipe) and Grid view (browse)
+- Full feature parity with Android app
 
 ## Architecture
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Android    │────▶│   Backend    │────▶│   Radarr     │
-│   TV Tenderr │     │   FastAPI    │     │   Sonarr     │
-│              │◀────│   Port 8899  │◀────│   Plex       │
-└──────────────┘     └──────────────┘     └──────────────┘
-```
-
-- **Backend**: Python FastAPI server connecting to Radarr, Sonarr, and Plex APIs
-- **Android**: Native Kotlin app with card swipe UI
-- **Runs on**: Any Linux server with Python 3.8+
-
-## Install as Service
-
-```bash
-./setup.sh --service
-```
-
-This enables the backend to start automatically on boot.
-
-## Project Structure
-
-```
 tv-tenderr/
-├── backend.py          # FastAPI backend server
-├── setup.sh            # Setup script
+├── backend.py          # FastAPI server
+├── android/            # Android app (Kotlin)
+├── web/                # Web GUI (HTML/CSS/JS)
+├── data/               # Local data storage
 ├── .env.example        # Environment template
-├── .gitignore          # Git ignore rules
-├── movie-swipe.service # Systemd service file
-├── android/            # Android app source
-│   └── app/
-│       └── src/
-│           └── main/
-│               ├── java/com/movieswipe/
-│               │   ├── MainActivity.kt
-│               │   ├── HistoryActivity.kt
-│               │   ├── SettingsActivity.kt
-│               │   ├── ApiClient.kt
-│               │   └── Models.kt
-│               └── res/
-│                   └── layout/
-└── README.md
+└── setup.sh            # Installation script
 ```
 
-## Contributing
+## API Endpoints
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+- `GET /api/movies` — list all movies
+- `GET /api/shows` — list all shows
+- `POST /api/movies/{id}/keep` — keep a movie
+- `POST /api/movies/{id}/block` — block a movie
+- `GET /api/discover/movies` — discover new movies
+- `GET /api/discover/shows` — discover new shows
+- `POST /api/plex/refresh` — refresh Plex libraries
+- `GET /api/config` — get configuration
+- `POST /api/config` — update configuration
+
+## Requirements
+
+- Python 3.10+
+- Radarr instance with API key
+- Sonarr instance with API key
+- Plex server with token
+- TMDb API key (free at themoviedb.org)
 
 ## License
 
-MIT License
-
-## Acknowledgments
-
-- Built with [FastAPI](https://fastapi.tiangolo.com/)
-- Android UI with [Material Design](https://material.io/)
-- Inspired by the need to manage massive Plex libraries
+MIT

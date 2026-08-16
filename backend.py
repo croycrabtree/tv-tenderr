@@ -7,6 +7,7 @@ import random
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
@@ -15,6 +16,14 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
 app = FastAPI(title="TV Tenderr")
+
+# Serve web UI
+WEB_DIR = Path(__file__).parent / "web"
+app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
+
+@app.get("/")
+async def serve_ui():
+    return FileResponse(str(WEB_DIR / "index.html"))
 
 # Config - set these in .env or use env vars
 RADARR_URL = os.getenv("RADARR_URL", "http://localhost:7878")
@@ -456,12 +465,14 @@ async def get_config():
         "sonarrKey": SONARR_KEY,
         "plexUrl": PLEX_URL,
         "plexToken": PLEX_TOKEN,
+        "tmdbKey": TMDB_KEY,
     }
 
 @app.post("/api/config")
 async def update_config(config: dict):
     """Update configuration."""
     global RADARR_URL, RADARR_KEY, SONARR_URL, SONARR_KEY, PLEX_URL, PLEX_TOKEN
+    global RADARR_QUALITY_ID, SONARR_QUALITY_ID, RADARR_ROOT_FOLDER, SONARR_ROOT_FOLDER, TMDB_KEY
     if "radarrUrl" in config and config["radarrUrl"]:
         RADARR_URL = config["radarrUrl"]
     if "radarrKey" in config and config["radarrKey"]:
@@ -474,6 +485,16 @@ async def update_config(config: dict):
         PLEX_URL = config["plexUrl"]
     if "plexToken" in config and config["plexToken"]:
         PLEX_TOKEN = config["plexToken"]
+    if "radarrQualityId" in config:
+        RADARR_QUALITY_ID = int(config["radarrQualityId"])
+    if "sonarrQualityId" in config:
+        SONARR_QUALITY_ID = int(config["sonarrQualityId"])
+    if "radarrRootFolder" in config:
+        RADARR_ROOT_FOLDER = config["radarrRootFolder"]
+    if "sonarrRootFolder" in config:
+        SONARR_ROOT_FOLDER = config["sonarrRootFolder"]
+    if "tmdbKey" in config and config["tmdbKey"]:
+        TMDB_KEY = config["tmdbKey"]
     return {"ok": True}
 
 # ==================== SONARR SHOW ENDPOINTS ====================
@@ -857,6 +878,443 @@ async def plex_refresh():
         )
 
     return {"ok": True, "status": r.status_code}
+
+
+
+def get_existing_movie_tmdb_ids():
+    """Get TMDb IDs of all movies in Radarr."""
+    try:
+        import httpx as _httpx
+        r = _httpx.get(f"{RADARR_URL}/api/v3/movie", headers={"X-Api-Key": RADARR_KEY}, timeout=30)
+        if r.status_code == 200:
+            return {str(m.get("tmdbId")) for m in r.json() if m.get("tmdbId")}
+    except:
+        pass
+    return set()
+
+def get_existing_show_titles():
+    """Get normalized titles of all shows in Sonarr."""
+    try:
+        import httpx as _httpx
+        r = _httpx.get(f"{SONARR_URL}/api/v3/series", headers={"X-Api-Key": SONARR_KEY}, timeout=30)
+        if r.status_code == 200:
+            titles = set()
+            for s in r.json():
+                title = s.get("title", "").lower().strip()
+                year = s.get("year", "")
+                titles.add(f"{title}|{year}")
+            return titles
+    except:
+        pass
+    return set()
+
+# ==================== TMDB DISCOVER ENDPOINTS ====================
+
+TMDB_KEY = os.getenv("TMDB_KEY", "YOUR_TMDB_KEY")
+RADARR_QUALITY_ID = int(os.getenv("RADARR_QUALITY_ID", "4"))
+SONARR_QUALITY_ID = int(os.getenv("SONARR_QUALITY_ID", "4"))
+RADARR_ROOT_FOLDER = os.getenv("RADARR_ROOT_FOLDER", "H:\\")
+SONARR_ROOT_FOLDER = os.getenv("SONARR_ROOT_FOLDER", "I:\\TV")
+HIDDEN_FILE = DATA_DIR / "hidden_discover.json"
+
+def load_hidden():
+    if HIDDEN_FILE.exists():
+        return json.loads(HIDDEN_FILE.read_text())
+    return {}
+
+def save_hidden(hidden):
+    HIDDEN_FILE.write_text(json.dumps(hidden, indent=2))
+
+@app.get("/api/providers")
+async def get_providers():
+    """Get available streaming providers from TMDb."""
+    async with httpx.AsyncClient() as client:
+        movie_r = await client.get(
+            f"https://api.themoviedb.org/3/watch/providers/movie?api_key={TMDB_KEY}&region=US&watch_region=US",
+            timeout=15
+        )
+        tv_r = await client.get(
+            f"https://api.themoviedb.org/3/watch/providers/tv?api_key={TMDB_KEY}&region=US&watch_region=US",
+            timeout=15
+        )
+
+    movie_providers = []
+    if movie_r.status_code == 200:
+        for p in movie_r.json().get("results", []):
+            movie_providers.append({
+                "id": p["provider_id"],
+                "name": p["provider_name"],
+                "logo": f"https://image.tmdb.org/t/p/original{p['logo_path']}" if p.get("logo_path") else None,
+            })
+
+    tv_providers = []
+    if tv_r.status_code == 200:
+        for p in tv_r.json().get("results", []):
+            tv_providers.append({
+                "id": p["provider_id"],
+                "name": p["provider_name"],
+                "logo": f"https://image.tmdb.org/t/p/original{p['logo_path']}" if p.get("logo_path") else None,
+            })
+
+    return {"movie_providers": movie_providers, "tv_providers": tv_providers}
+
+
+@app.get("/api/discover/movies")
+async def discover_movies(page: int = 1, limit: int = 20, providers: str = "", sort_by: str = "popularity.desc"):
+    """Discover movies from TMDb, optionally filtered by streaming providers."""
+    hidden = load_hidden()
+    existing_ids = get_existing_movie_tmdb_ids()
+
+    movies = []
+    tmdb_page = page
+    max_attempts = 5  # Fetch up to 5 pages to fill the limit
+
+    async with httpx.AsyncClient() as client:
+        while len(movies) < limit and tmdb_page <= page + max_attempts:
+            params = {
+                "api_key": TMDB_KEY,
+                "sort_by": sort_by,
+                "watch_region": "US",
+                "language": "en-US",
+                "page": tmdb_page,
+            }
+            if providers:
+                params["with_watch_providers"] = providers
+                params["with_watch_monetization_types"] = "flatrate|free|ads"
+
+            r = await client.get("https://api.themoviedb.org/3/discover/movie", params=params, timeout=15)
+            if r.status_code != 200:
+                break
+            data = r.json()
+
+            for m in data.get("results", []):
+                tmdb_id = m["id"]
+                if str(tmdb_id) in hidden or str(tmdb_id) in existing_ids:
+                    continue
+
+                poster_url = f"https://image.tmdb.org/t/p/w500{m['poster_path']}" if m.get("poster_path") else None
+                backdrop_url = f"https://image.tmdb.org/t/p/w780{m['backdrop_path']}" if m.get("backdrop_path") else None
+
+                movies.append({
+                    "tmdbId": tmdb_id,
+                    "title": m["title"],
+                    "year": m.get("release_date", "")[:4] or None,
+                    "overview": m.get("overview", ""),
+                    "rating": m.get("vote_average"),
+                    "posterUrl": poster_url,
+                    "backdropUrl": backdrop_url,
+                    "releaseDate": m.get("release_date"),
+                })
+
+                if len(movies) >= limit:
+                    break
+
+            tmdb_page += 1
+
+    return {"movies": movies[:limit], "total": 10000, "page": page}
+
+
+@app.get("/api/discover/shows")
+async def discover_shows(page: int = 1, limit: int = 20, providers: str = "", sort_by: str = "popularity.desc"):
+    """Discover TV shows from TMDb, optionally filtered by streaming providers."""
+    hidden = load_hidden()
+    existing_titles = get_existing_show_titles()
+
+    shows = []
+    tmdb_page = page
+    max_attempts = 5
+
+    async with httpx.AsyncClient() as client:
+        while len(shows) < limit and tmdb_page <= page + max_attempts:
+            params = {
+                "api_key": TMDB_KEY,
+                "sort_by": sort_by,
+                "watch_region": "US",
+                "language": "en-US",
+                "page": tmdb_page,
+            }
+            if providers:
+                params["with_watch_providers"] = providers
+                params["with_watch_monetization_types"] = "flatrate|free|ads"
+
+            r = await client.get("https://api.themoviedb.org/3/discover/tv", params=params, timeout=15)
+            if r.status_code != 200:
+                break
+            data = r.json()
+
+            for s in data.get("results", []):
+                tmdb_id = s["id"]
+                if str(tmdb_id) in hidden:
+                    continue
+                show_key = f"{s.get('name','').lower().strip()}|{s.get('first_air_date','')[:4]}"
+                if show_key in existing_titles:
+                    continue
+
+                poster_url = f"https://image.tmdb.org/t/p/w500{s['poster_path']}" if s.get("poster_path") else None
+                backdrop_url = f"https://image.tmdb.org/t/p/w780{s['backdrop_path']}" if s.get("backdrop_path") else None
+
+                shows.append({
+                    "tmdbId": tmdb_id,
+                    "title": s["name"],
+                    "year": s.get("first_air_date", "")[:4] or None,
+                    "overview": s.get("overview", ""),
+                    "rating": s.get("vote_average"),
+                    "posterUrl": poster_url,
+                    "backdropUrl": backdrop_url,
+                    "firstAirDate": s.get("first_air_date"),
+                })
+
+                if len(shows) >= limit:
+                    break
+
+            tmdb_page += 1
+
+    return {"shows": shows[:limit], "total": 10000, "page": page}
+
+
+@app.post("/api/discover/{tmdb_id}/hide")
+async def hide_discover(tmdb_id: int, body: dict = {}):
+    """Hide a discover item so it doesn't show again."""
+    hidden = load_hidden()
+    hidden[str(tmdb_id)] = {
+        "action": body.get("action", "hidden"),
+        "timestamp": datetime.now().isoformat(),
+        "title": body.get("title"),
+        "year": body.get("year"),
+        "posterUrl": body.get("posterUrl"),
+        "type": body.get("type", "movie"),
+    }
+    save_hidden(hidden)
+    return {"ok": True}
+
+
+@app.post("/api/discover/{tmdb_id}/add_movie")
+async def add_movie_from_discover(tmdb_id: int):
+    """Add a discovered movie to Radarr."""
+    async with httpx.AsyncClient() as client:
+        # Lookup movie in Radarr by tmdbId
+        r = await client.get(
+            f"{RADARR_URL}/api/v3/movie/lookup",
+            headers={"X-Api-Key": RADARR_KEY},
+            params={"term": f"tmdb:{tmdb_id}"},
+            timeout=15
+        )
+        if r.status_code != 200 or not r.json():
+            raise HTTPException(status_code=404, detail="Movie not found")
+
+        movie_data = r.json()[0]
+
+        add_payload = {
+            "title": movie_data["title"],
+            "tmdbId": tmdb_id,
+            "qualityProfileId": RADARR_QUALITY_ID,
+            "rootFolderPath": RADARR_ROOT_FOLDER,
+            "monitored": True,
+            "addOptions": {"searchForMovie": True},
+            "images": movie_data.get("images", []),
+        }
+
+        r = await client.post(
+            f"{RADARR_URL}/api/v3/movie",
+            headers={"X-Api-Key": RADARR_KEY},
+            json=add_payload,
+            timeout=30
+        )
+        if r.status_code not in (200, 201):
+            raise HTTPException(status_code=r.status_code, detail=f"Radarr add failed: {r.text}")
+
+    # Hide from discover
+    hidden = load_hidden()
+    hidden[str(tmdb_id)] = {
+        "action": "added",
+        "timestamp": datetime.now().isoformat(),
+        "title": movie_data.get("title"),
+        "year": movie_data.get("year"),
+        "posterUrl": f"https://image.tmdb.org/t/p/w500{movie_data.get('images', [{}])[0].get('coverUrl', '').split('?')[0].replace('/MediaCover/', '')}" if movie_data.get("images") else None,
+        "type": "movie",
+    }
+    save_hidden(hidden)
+
+    return {"ok": True, "title": movie_data["title"]}
+
+
+@app.post("/api/discover/{tmdb_id}/add_show")
+async def add_show_from_discover(tmdb_id: int):
+    """Add a discovered show to Sonarr."""
+    async with httpx.AsyncClient() as client:
+        # Lookup show by tmdbId
+        r = await client.get(
+            f"{SONARR_URL}/api/v3/series/lookup",
+            headers={"X-Api-Key": SONARR_KEY},
+            params={"term": f"tmdb:{tmdb_id}"},
+            timeout=15
+        )
+        if r.status_code != 200 or not r.json():
+            raise HTTPException(status_code=404, detail="Show not found")
+
+        show_data = r.json()[0]
+
+        add_payload = {
+            "title": show_data["title"],
+            "tmdbId": tmdb_id,
+            "tvdbId": show_data.get("tvdbId"),
+            "qualityProfileId": SONARR_QUALITY_ID,
+            "rootFolderPath": SONARR_ROOT_FOLDER,
+            "monitored": True,
+            "addOptions": {"searchForMissingEpisodes": True},
+            "images": show_data.get("images", []),
+            "seasons": show_data.get("seasons", []),
+        }
+
+        r = await client.post(
+            f"{SONARR_URL}/api/v3/series",
+            headers={"X-Api-Key": SONARR_KEY},
+            json=add_payload,
+            timeout=30
+        )
+        if r.status_code not in (200, 201):
+            raise HTTPException(status_code=r.status_code, detail=f"Sonarr add failed: {r.text}")
+
+    # Hide from discover
+    hidden = load_hidden()
+    hidden[str(tmdb_id)] = {
+        "action": "added",
+        "timestamp": datetime.now().isoformat(),
+        "title": show_data.get("title"),
+        "year": show_data.get("year"),
+        "type": "show",
+    }
+    save_hidden(hidden)
+
+    return {"ok": True, "title": show_data["title"]}
+
+
+@app.get("/api/discover/history")
+async def get_discover_history():
+    """Get all discover actions (added, hidden)."""
+    hidden = load_hidden()
+    history = []
+
+    async with httpx.AsyncClient() as client:
+        for tmdb_id, info in hidden.items():
+            title = info.get("title")
+            year = info.get("year")
+            poster = info.get("posterUrl")
+            item_type = info.get("type", "movie")
+
+            # Look up title from TMDb if missing
+            if not title:
+                try:
+                    endpoint = "movie" if item_type == "movie" else "tv"
+                    r = await client.get(
+                        f"https://api.themoviedb.org/3/{endpoint}/{tmdb_id}?api_key={TMDB_KEY}",
+                        timeout=10
+                    )
+                    if r.status_code == 200:
+                        data = r.json()
+                        title = data.get("title") or data.get("name")
+                        year = (data.get("release_date") or data.get("first_air_date", ""))[:4] or None
+                        poster_path = data.get("poster_path")
+                        poster = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+                except:
+                    pass
+
+            history.append({
+                "tmdbId": int(tmdb_id),
+                "action": info.get("action", "hidden"),
+                "timestamp": info.get("timestamp"),
+                "title": title,
+                "year": year,
+                "posterUrl": poster,
+                "type": item_type,
+            })
+
+    history.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    return {"history": history}
+
+
+@app.post("/api/discover/{tmdb_id}/unhide")
+async def unhide_discover(tmdb_id: int):
+    """Remove a hide decision so the item shows up in discover again."""
+    hidden = load_hidden()
+    mid = str(tmdb_id)
+    if mid in hidden:
+        del hidden[mid]
+        save_hidden(hidden)
+    return {"ok": True}
+
+
+@app.post("/api/discover/{tmdb_id}/remove_movie")
+async def remove_movie_from_discover(tmdb_id: int):
+    """Remove a movie that was added via discover from Radarr."""
+    async with httpx.AsyncClient() as client:
+        # Find the movie in Radarr by tmdbId
+        r = await client.get(
+            f"{RADARR_URL}/api/v3/movie",
+            headers={"X-Api-Key": RADARR_KEY},
+            timeout=30
+        )
+        if r.status_code == 200:
+            for m in r.json():
+                if m.get("tmdbId") == tmdb_id:
+                    await client.delete(
+                        f"{RADARR_URL}/api/v3/movie/{m['id']}",
+                        headers={"X-Api-Key": RADARR_KEY},
+                        params={"deleteFiles": "true"},
+                        timeout=15
+                    )
+                    break
+
+    # Remove from hidden so it shows in discover again
+    hidden = load_hidden()
+    mid = str(tmdb_id)
+    if mid in hidden:
+        del hidden[mid]
+        save_hidden(hidden)
+
+    return {"ok": True}
+
+
+@app.post("/api/discover/{tmdb_id}/remove_show")
+async def remove_show_from_discover(tmdb_id: int):
+    """Remove a show that was added via discover from Sonarr."""
+    async with httpx.AsyncClient() as client:
+        # Find the show by looking up via TMDb
+        r = await client.get(
+            f"{SONARR_URL}/api/v3/series/lookup",
+            headers={"X-Api-Key": SONARR_KEY},
+            params={"term": f"tmdb:{tmdb_id}"},
+            timeout=15
+        )
+        if r.status_code == 200 and r.json():
+            show_data = r.json()[0]
+            tvdb_id = show_data.get("tvdbId")
+            if tvdb_id:
+                # Find in Sonarr by tvdbId
+                sr = await client.get(
+                    f"{SONARR_URL}/api/v3/series",
+                    headers={"X-Api-Key": SONARR_KEY},
+                    timeout=30
+                )
+                if sr.status_code == 200:
+                    for s in sr.json():
+                        if s.get("tvdbId") == tvdb_id:
+                            await client.delete(
+                                f"{SONARR_URL}/api/v3/series/{s['id']}",
+                                headers={"X-Api-Key": SONARR_KEY},
+                                params={"deleteFiles": "true"},
+                                timeout=15
+                            )
+                            break
+
+    # Remove from hidden
+    hidden = load_hidden()
+    mid = str(tmdb_id)
+    if mid in hidden:
+        del hidden[mid]
+        save_hidden(hidden)
+
+    return {"ok": True}
 
 
 if __name__ == "__main__":

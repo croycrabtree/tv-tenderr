@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Tenderr</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-sidebar: #0f3460;
+            --accent: #e94560;
+            --accent-green: #2ecc71;
+            --accent-yellow: #f39c12;
+            --accent-blue: #3498db;
+            --text: #eee;
+            --text-dim: #888;
+            --text-muted: #555;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-dark); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: 64px; background: var(--bg-sidebar); display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 8px; flex-shrink: 0; }
+        .sidebar-item { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; font-size: 20px; }
+        .sidebar-item:hover { background: rgba(255,255,255,0.1); }
+        .sidebar-item.active { background: var(--accent); }
+        .sidebar-logo { font-size: 18px; font-weight: 800; color: var(--accent); margin-bottom: 16px; letter-spacing: -1px; }
+
+        /* Main content */
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Top bar */
+        .topbar { display: flex; align-items: center; padding: 12px 24px; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .topbar-title { font-size: 18px; font-weight: 600; }
+        .topbar-stats { color: var(--text-dim); font-size: 13px; margin-left: auto; }
+        .topbar-search { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 12px; color: var(--text); font-size: 13px; width: 240px; }
+        .topbar-search::placeholder { color: var(--text-muted); }
+
+        /* Content area */
+        .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+        /* Card grid */
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+        .card { background: var(--bg-card); border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; position: relative; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .card-poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #111; display: block; }
+        .card-info { padding: 10px; }
+        .card-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-meta { font-size: 11px; color: var(--text-dim); margin-top: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .card-rating { color: var(--accent-yellow); }
+        .card-actions { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+        .card:hover .card-actions { opacity: 1; }
+        .card-btn { width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+        .card-btn.green { background: var(--accent-green); color: #fff; }
+        .card-btn.red { background: var(--accent); color: #fff; }
+        .card-btn.blue { background: var(--accent-blue); color: #fff; }
+
+        /* Detail panel */
+        .detail-panel { position: fixed; top: 0; right: -480px; width: 480px; height: 100vh; background: var(--bg-card); border-left: 1px solid rgba(255,255,255,0.05); transition: right 0.3s; z-index: 100; overflow-y: auto; }
+        .detail-panel.open { right: 0; }
+        .detail-backdrop { width: 100%; height: 240px; object-fit: cover; }
+        .detail-poster-wrap { display: flex; margin-top: -60px; padding: 0 24px; gap: 16px; }
+        .detail-poster { width: 100px; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+        .detail-info { padding: 16px 24px; }
+        .detail-title { font-size: 22px; font-weight: 700; }
+        .detail-meta { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+        .detail-overview { font-size: 14px; line-height: 1.6; color: var(--text-dim); margin-top: 16px; }
+        .detail-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-green { background: var(--accent-green); color: #fff; }
+        .btn-red { background: var(--accent); color: #fff; }
+        .btn-yellow { background: var(--accent-yellow); color: #fff; }
+        .btn-blue { background: var(--accent-blue); color: #fff; }
+        .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--text); }
+        .btn-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.6); border: none; color: #fff; font-size: 16px; cursor: pointer; }
+
+        /* Mode tabs */
+        .mode-tabs { display: flex; gap: 4px; }
+        .mode-tab { padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; color: var(--text-dim); }
+        .mode-tab:hover { background: rgba(255,255,255,0.05); }
+        .mode-tab.active { background: var(--accent); color: #fff; }
+        .mode-tab.active-green { background: var(--accent-green); color: #fff; }
+        .mode-tab.active-yellow { background: var(--accent-yellow); color: #fff; }
+
+        /* View toggle */
+        .view-toggle { display: flex; gap: 4px; margin-left: 12px; }
+        .view-btn { width: 32px; height: 32px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--text-dim); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+        .view-btn.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+
+        /* Single card view */
+        .single-card-container { display: flex; align-items: center; justify-content: center; height: 100%; gap: 24px; }
+        .single-card { background: var(--bg-card); border-radius: 12px; overflow: hidden; width: 400px; max-height: calc(100vh - 120px); box-shadow: 0 8px 32px rgba(0,0,0,0.5); position: relative; cursor: grab; transition: transform 0.3s, opacity 0.3s; }
+        .single-card.dragging { cursor: grabbing; }
+        .single-card.swipe-left { transform: translateX(-120%) rotate(-15deg); opacity: 0; }
+        .single-card.swipe-right { transform: translateX(120%) rotate(15deg); opacity: 0; }
+        .single-card.swipe-up { transform: translateY(-120%); opacity: 0; }
+        .single-card-poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+        .single-card-gradient { position: absolute; bottom: 0; left: 0; right: 0; height: 50%; background: linear-gradient(transparent, rgba(0,0,0,0.9)); pointer-events: none; }
+        .single-card-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px; }
+        .single-card-title { font-size: 24px; font-weight: 700; }
+        .single-card-meta { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+        .single-card-overview { font-size: 12px; color: var(--text-dim); margin-top: 8px; line-height: 1.4; max-height: 60px; overflow: hidden; }
+        .single-card-badge { position: absolute; top: 20px; padding: 8px 16px; border-radius: 8px; font-size: 18px; font-weight: 700; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+        .single-card-badge.left { left: 20px; background: var(--accent); color: #fff; }
+        .single-card-badge.right { right: 20px; background: var(--accent-green); color: #fff; }
+        .single-card-badge.up { left: 50%; transform: translateX(-50%); top: 20px; background: var(--accent-yellow); color: #fff; }
+
+        .action-buttons { display: flex; flex-direction: column; gap: 12px; }
+        .action-btn { width: 56px; height: 56px; border-radius: 50%; border: 2px solid; cursor: pointer; font-size: 22px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: transparent; }
+        .action-btn:hover { transform: scale(1.15); }
+        .action-btn.red { border-color: var(--accent); color: var(--accent); }
+        .action-btn.red:hover { background: var(--accent); color: #fff; }
+        .action-btn.yellow { border-color: var(--accent-yellow); color: var(--accent-yellow); }
+        .action-btn.yellow:hover { background: var(--accent-yellow); color: #fff; }
+        .action-btn.green { border-color: var(--accent-green); color: var(--accent-green); }
+        .action-btn.green:hover { background: var(--accent-green); color: #fff; }
+        .action-btn.blue { border-color: var(--accent-blue); color: var(--accent-blue); }
+        .action-btn.blue:hover { background: var(--accent-blue); color: #fff; }
+
+        /* Sort/filter bar */
+        .filter-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-chip { padding: 6px 12px; border-radius: 20px; font-size: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s; color: var(--text-dim); }
+        .filter-chip:hover { border-color: var(--accent-blue); color: var(--text); }
+        .filter-chip.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px 20px; font-size: 13px; z-index: 200; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        /* History view */
+        .history-list { display: flex; flex-direction: column; gap: 8px; }
+        .history-item { display: flex; align-items: center; gap: 12px; background: var(--bg-card); border-radius: 8px; padding: 12px; }
+        .history-poster { width: 40px; height: 60px; border-radius: 4px; object-fit: cover; background: #111; }
+        .history-info { flex: 1; }
+        .history-title { font-size: 14px; font-weight: 600; }
+        .history-action { font-size: 12px; margin-top: 2px; }
+        .history-btn { padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 11px; font-weight: 600; }
+
+        /* Loading */
+        .loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--text-dim); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+        /* Settings */
+        .settings-group { background: var(--bg-card); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+        .settings-group h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--accent-green); }
+        .settings-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; }
+        .settings-label { font-size: 12px; color: var(--text-dim); width: 140px; flex-shrink: 0; }
+        .settings-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 13px; }
+        .settings-input:focus { outline: none; border-color: var(--accent-blue); }
+        .settings-select { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 13px; }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-logo">TVT</div>
+        <div class="sidebar-item active" data-view="movies" title="Movies">🎬</div>
+        <div class="sidebar-item" data-view="shows" title="Shows">📺</div>
+        <div class="sidebar-item" data-view="discover" title="Discover">🔍</div>
+        <div class="sidebar-item" data-view="history" title="History">📋</div>
+        <div class="sidebar-item" data-view="settings" title="Settings">⚙️</div>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-title" id="pageTitle">Movies</div>
+            <div class="mode-tabs" id="discoverTabs" style="display:none">
+                <div class="mode-tab active" data-type="movies">🎬 Movies</div>
+                <div class="mode-tab" data-type="shows">📺 Shows</div>
+            </div>
+            <div class="filter-bar" id="sortBar" style="display:none">
+                <div class="filter-chip active" data-sort="popularity.desc">🔥 Popular</div>
+                <div class="filter-chip" data-sort="release_date.desc">🆕 Newest</div>
+                <div class="filter-chip" data-sort="vote_average.desc">⭐ Top Rated</div>
+            </div>
+            <input type="text" class="topbar-search" placeholder="Search..." id="searchInput">
+            <div class="view-toggle">
+                <button class="view-btn active" data-viewmode="card" title="Card view">🃏</button>
+                <button class="view-btn" data-viewmode="grid" title="Grid view">⊞</button>
+            </div>
+            <div class="topbar-stats" id="statsText"></div>
+        </div>
+        <div class="content" id="contentArea">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="detail-panel" id="detailPanel">
+        <button class="btn-close" onclick="closeDetail()">✕</button>
+        <img class="detail-backdrop" id="detailBackdrop" src="" alt="">
+        <div class="detail-poster-wrap">
+            <img class="detail-poster" id="detailPoster" src="" alt="">
+        </div>
+        <div class="detail-info">
+            <div class="detail-title" id="detailTitle"></div>
+            <div class="detail-meta" id="detailMeta"></div>
+            <div class="detail-overview" id="detailOverview"></div>
+            <div class="detail-actions" id="detailActions"></div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API = '';
+        let currentView = 'movies';
+        let discoverType = 'movies';
+        let discoverSort = 'popularity.desc';
+        let currentPage = 1;
+        let viewMode = 'card'; // 'card' or 'grid'
+        let currentItems = [];
+        let currentCardIndex = 0;
+
+        // Sidebar navigation
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                currentView = item.dataset.view;
+                document.getElementById('pageTitle').textContent = {
+                    movies: 'Movies', shows: 'TV Shows', discover: 'Discover', history: 'History', settings: 'Settings'
+                }[currentView];
+                document.getElementById('discoverTabs').style.display = currentView === 'discover' ? 'flex' : 'none';
+                document.getElementById('sortBar').style.display = currentView === 'discover' ? 'flex' : 'none';
+                currentPage = 1;
+                loadView();
+            });
+        });
+
+        // Discover type tabs
+        document.querySelectorAll('#discoverTabs .mode-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('#discoverTabs .mode-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                discoverType = tab.dataset.type;
+                currentPage = 1;
+                loadView();
+            });
+        });
+
+        // Sort chips
+        document.querySelectorAll('#sortBar .filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('#sortBar .filter-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                discoverSort = chip.dataset.sort;
+                currentPage = 1;
+                loadView();
+            });
+        });
+
+        // View toggle
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                viewMode = btn.dataset.viewmode;
+                loadView();
+            });
+        });
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', debounce(() => {
+            currentPage = 1;
+            loadView();
+        }, 300));
+
+        function debounce(fn, ms) {
+            let timer;
+            return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+        }
+
+        function renderSingleCard(content, type) {
+            if (currentItems.length === 0) {
+                content.innerHTML = '<div class="loading">No items to show</div>';
+                return;
+            }
+            if (currentCardIndex >= currentItems.length) {
+                content.innerHTML = '<div class="loading">No more items! Click to load more.</div>';
+                content.style.cursor = 'pointer';
+                content.onclick = () => { currentPage++; loadView(); };
+                return;
+            }
+
+            const item = currentItems[currentCardIndex];
+            const isDiscover = type === 'discover';
+            const title = item.title || '';
+            const year = item.year || '';
+            const poster = item.posterUrl || '';
+            const rating = item.rating ? `⭐ ${item.rating.toFixed(1)}` : '';
+            const size = item.sizeGB ? `${item.sizeGB} GB` : '';
+            const status = item.status === 'continuing' ? '🟢 Continuing' : item.status === 'ended' ? '🔴 Ended' : '';
+            const eps = item.episodeCount ? `${item.episodeCount} eps` : '';
+            const overview = item.overview || '';
+
+            content.innerHTML = `
+                <div class="single-card-container">
+                    <div class="action-buttons">
+                        ${isDiscover ? `
+                            <button class="action-btn red" onclick="singleDiscoverHide()" title="Hide">✗</button>
+                            <button class="action-btn yellow" onclick="singleSkip()" title="Skip">→</button>
+                            <button class="action-btn green" onclick="singleDiscoverAdd()" title="Add to library">+</button>
+                        ` : `
+                            <button class="action-btn red" onclick="singleBlock()" title="Block">✗</button>
+                            <button class="action-btn yellow" onclick="singleSkip()" title="Skip">→</button>
+                            <button class="action-btn green" onclick="singleKeep()" title="Keep (6mo)">✓</button>
+                            <button class="action-btn blue" onclick="singleSuperKeep()" title="Super Keep">⭐</button>
+                        `}
+                    </div>
+                    <div class="single-card" id="activeCard">
+                        <div class="single-card-badge left" id="badgeLeft">HIDE</div>
+                        <div class="single-card-badge right" id="badgeRight">${isDiscover ? 'ADD' : 'KEEP'}</div>
+                        <div class="single-card-badge up" id="badgeUp">SKIP</div>
+                        <img class="single-card-poster" src="${poster}" alt="${title}">
+                        <div class="single-card-gradient"></div>
+                        <div class="single-card-info">
+                            <div class="single-card-title">${title}</div>
+                            <div class="single-card-meta">${year} ${size ? '· ' + size : ''} ${status ? '· ' + status : ''} ${eps ? '· ' + eps : ''} ${rating ? '· ' + rating : ''}</div>
+                            <div class="single-card-overview">${overview}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Drag to swipe
+            setupCardDrag();
+        }
+
+        function setupCardDrag() {
+            const card = document.getElementById('activeCard');
+            if (!card) return;
+            let startX = 0, startY = 0, currentX = 0, currentY = 0, dragging = false;
+
+            card.addEventListener('mousedown', (e) => {
+                startX = e.clientX; startY = e.clientY; dragging = true;
+                card.classList.add('dragging');
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!dragging) return;
+                currentX = e.clientX - startX;
+                currentY = e.clientY - startY;
+                card.style.transform = `translateX(${currentX}px) translateY(${currentY}px) rotate(${currentX / 20}deg)`;
+
+                const badgeL = document.getElementById('badgeLeft');
+                const badgeR = document.getElementById('badgeRight');
+                const badgeU = document.getElementById('badgeUp');
+                if (badgeL) badgeL.style.opacity = currentX < -50 ? Math.min(Math.abs(currentX) / 200, 1) : 0;
+                if (badgeR) badgeR.style.opacity = currentX > 50 ? Math.min(currentX / 200, 1) : 0;
+                if (badgeU) badgeU.style.opacity = currentY < -50 ? Math.min(Math.abs(currentY) / 200, 1) : 0;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (!dragging) return;
+                dragging = false;
+                card.classList.remove('dragging');
+
+                if (Math.abs(currentX) > 150 || Math.abs(currentY) > 150) {
+                    if (currentX > 150) { card.classList.add('swipe-right'); setTimeout(() => singleAction('right'), 300); }
+                    else if (currentX < -150) { card.classList.add('swipe-left'); setTimeout(() => singleAction('left'), 300); }
+                    else if (currentY < -150) { card.classList.add('swipe-up'); setTimeout(() => singleAction('up'), 300); }
+                    else { resetCard(card); }
+                } else {
+                    resetCard(card);
+                }
+                currentX = 0; currentY = 0;
+            });
+        }
+
+        function resetCard(card) {
+            card.style.transform = '';
+            const badges = card.querySelectorAll('.single-card-badge');
+            badges.forEach(b => b.style.opacity = 0);
+        }
+
+        function singleAction(direction) {
+            const isDiscover = currentView === 'discover';
+            if (direction === 'right') {
+                if (isDiscover) singleDiscoverAdd(); else singleKeep();
+            } else if (direction === 'left') {
+                if (isDiscover) singleDiscoverHide(); else singleBlock();
+            } else if (direction === 'up') {
+                singleSkip();
+            }
+        }
+
+        function singleKeep() {
+            const item = currentItems[currentCardIndex];
+            if (!item) return;
+            actionKeep(item.id, currentView === 'movies' ? 'movies' : 'shows');
+            currentCardIndex++;
+            renderSingleCard(document.getElementById('contentArea'), currentView);
+        }
+
+        function singleSuperKeep() {
+            const item = currentItems[currentCardIndex];
+            if (!item) return;
+            actionSuperKeep(item.id, currentView === 'movies' ? 'movies' : 'shows');
+            currentCardIndex++;
+            renderSingleCard(document.getElementById('contentArea'), currentView);
+        }
+
+        function singleBlock() {
+            const item = currentItems[currentCardIndex];
+            if (!item) return;
+            actionBlock(item.id, currentView === 'movies' ? 'movies' : 'shows');
+            currentCardIndex++;
+            renderSingleCard(document.getElementById('contentArea'), currentView);
+        }
+
+        function singleSkip() {
+            currentCardIndex++;
+            renderSingleCard(document.getElementById('contentArea'), currentView);
+        }
+
+        function singleDiscoverAdd() {
+            const item = currentItems[currentCardIndex];
+            if (!item) return;
+            discoverAdd(item.tmdbId);
+            currentCardIndex++;
+            renderSingleCard(document.getElementById('contentArea'), 'discover');
+        }
+
+        function singleDiscoverHide() {
+            const item = currentItems[currentCardIndex];
+            if (!item) return;
+            discoverHide(item.tmdbId, item.title, item.year || '', item.posterUrl || '');
+            currentCardIndex++;
+            renderSingleCard(document.getElementById('contentArea'), 'discover');
+        }
+
+        async function loadView() {
+            const content = document.getElementById('contentArea');
+            const search = document.getElementById('searchInput').value.trim();
+            content.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                switch (currentView) {
+                    case 'movies': await loadLibrary('movies', content, search); break;
+                    case 'shows': await loadLibrary('shows', content, search); break;
+                    case 'discover': await loadDiscover(content); break;
+                    case 'history': await loadHistory(content); break;
+                    case 'settings': loadSettings(content); break;
+                }
+            } catch (e) {
+                content.innerHTML = `<div class="loading">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function loadLibrary(type, content, search) {
+            const endpoint = type === 'movies' ? '/api/movies' : '/api/shows';
+            const res = await fetch(API + endpoint);
+            const data = await res.json();
+            const items = type === 'movies' ? data.movies : data.shows;
+            const filtered = search ? items.filter(i => (i.title || '').toLowerCase().includes(search.toLowerCase())) : items;
+
+            currentItems = filtered;
+            document.getElementById('statsText').textContent = `${filtered.length} ${type}`;
+
+            if (viewMode === 'card') {
+                currentCardIndex = 0;
+                renderSingleCard(content, type);
+            } else {
+                content.innerHTML = `<div class="card-grid">${filtered.map(item => `
+                    <div class="card" onclick='showDetail(${JSON.stringify(item).replace(/'/g, "&#39;")}, "${type}")'>
+                        <img class="card-poster" src="${item.posterUrl || ''}" alt="${item.title}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22180%22 height=%22270%22 fill=%22%2316213e%22><rect width=%22180%22 height=%22270%22/><text x=%2290%22 y=%22135%22 text-anchor=%22middle%22 fill=%22%23555%22 font-size=%2214%22>${encodeURIComponent(item.title)}</text></svg>'">
+                        <div class="card-actions">
+                            <button class="card-btn green" onclick="event.stopPropagation(); actionKeep(${item.id}, '${type}')" title="Keep">✓</button>
+                            <button class="card-btn red" onclick="event.stopPropagation(); actionBlock(${item.id}, '${type}')" title="Block">✗</button>
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">${item.title}</div>
+                            <div class="card-meta">
+                                <span>${item.year || ''}</span>
+                                <span class="card-rating">${item.sizeGB ? item.sizeGB + ' GB' : ''} ${item.status === 'continuing' ? '🟢' : item.status === 'ended' ? '🔴' : ''}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}</div>`;
+            }
+        }
+
+        async function loadDiscover(content) {
+            const endpoint = discoverType === 'movies' ? '/api/discover/movies' : '/api/discover/shows';
+            const res = await fetch(`${API}${endpoint}?page=${currentPage}&limit=20&sort_by=${discoverSort}`);
+            const data = await res.json();
+            const items = data.movies || data.shows || [];
+
+            currentItems = items;
+            document.getElementById('statsText').textContent = `Page ${currentPage} · ${items.length} items`;
+
+            if (viewMode === 'card') {
+                currentCardIndex = 0;
+                renderSingleCard(content, 'discover');
+            } else {
+                content.innerHTML = `<div class="card-grid">${items.map(item => `
+                    <div class="card" onclick='showDiscoverDetail(${JSON.stringify(item).replace(/'/g, "&#39;")})'>
+                        <img class="card-poster" src="${item.posterUrl || ''}" alt="${item.title}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22180%22 height=%22270%22 fill=%22%2316213e%22><rect width=%22180%22 height=%22270%22/><text x=%2290%22 y=%22135%22 text-anchor=%22middle%22 fill=%22%23555%22 font-size=%2214%22>${encodeURIComponent(item.title)}</text></svg>'">
+                        <div class="card-actions">
+                            <button class="card-btn green" onclick="event.stopPropagation(); discoverAdd(${item.tmdbId})" title="Add to library">+</button>
+                            <button class="card-btn red" onclick="event.stopPropagation(); discoverHide(${item.tmdbId}, '${item.title}', '${item.year || ''}', '${item.posterUrl || ''}')" title="Hide">✗</button>
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">${item.title}</div>
+                            <div class="card-meta">
+                                <span>${item.year || ''}</span>
+                                <span class="card-rating">⭐ ${item.rating ? item.rating.toFixed(1) : 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}</div>`;
+            }
+        }
+
+        async function loadHistory(content) {
+            const endpoint = currentView === 'history' ? '/api/history' : '/api/shows/history';
+            // Show all three histories
+            const [moviesHist, showsHist, discoverHist] = await Promise.all([
+                fetch(API + '/api/history').then(r => r.json()),
+                fetch(API + '/api/shows/history').then(r => r.json()),
+                fetch(API + '/api/discover/history').then(r => r.json())
+            ]);
+
+            const all = [
+                ...moviesHist.history.map(h => ({...h, source: 'Movies'})),
+                ...showsHist.history.map(h => ({...h, source: 'Shows'})),
+                ...discoverHist.history.map(h => ({...h, source: 'Discover'}))
+            ].sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
+            document.getElementById('statsText').textContent = `${all.length} actions`;
+
+            const actionColors = { keep: '#2ecc71', super_keep: '#f1c40f', block: '#e74c3c', clean: '#3498db', added: '#2ecc71', hidden: '#e74c3c' };
+            const actionLabels = { keep: '✓ KEPT', super_keep: '⭐ SUPER', block: '✗ BLOCKED', clean: '🧹 CLEANED', added: '⬇️ ADDED', hidden: '✗ HIDDEN' };
+
+            content.innerHTML = `<div class="history-list">${all.map(item => `
+                <div class="history-item">
+                    <img class="history-poster" src="${item.posterUrl || ''}" alt="" onerror="this.style.display='none'">
+                    <div class="history-info">
+                        <div class="history-title">${item.title || 'Unknown #' + item.movieId}</div>
+                        <div class="history-action" style="color:${actionColors[item.action] || '#888'}">${actionLabels[item.action] || item.action} · ${item.source} · ${item.year || ''}</div>
+                    </div>
+                    ${item.action === 'keep' || item.action === 'super_keep' ? `<button class="history-btn" style="background:#e74c3c;color:#fff" onclick="unkeep(${item.movieId},'${item.source}')">Un-keep</button>` : ''}
+                    ${item.action === 'block' ? `<button class="history-btn" style="background:#2ecc71;color:#fff" onclick="unblock(${item.movieId},'${item.source}')">Restore</button>` : ''}
+                    ${item.action === 'added' ? `<button class="history-btn" style="background:#e74c3c;color:#fff" onclick="removeDiscover(${item.tmdbId},'${item.type || 'movie'}')">Remove</button>` : ''}
+                    ${item.action === 'hidden' ? `<button class="history-btn" style="background:#2ecc71;color:#fff" onclick="unhideDiscover(${item.tmdbId})">Show Again</button>` : ''}
+                </div>
+            `).join('')}</div>`;
+        }
+
+        function loadSettings(content) {
+            fetch(API + '/api/config').then(r => r.json()).then(config => {
+                content.innerHTML = `
+                <div class="settings-group">
+                    <h3>Backend</h3>
+                    <div class="settings-row"><span class="settings-label">Server URL</span><input class="settings-input" id="sBackendUrl" value="${config.backendUrl || 'http://localhost:8899'}"></div>
+                </div>
+                <div class="settings-group">
+                    <h3>Radarr (Movies)</h3>
+                    <div class="settings-row"><span class="settings-label">URL</span><input class="settings-input" id="sRadarrUrl" value="${config.radarrUrl || ''}"></div>
+                    <div class="settings-row"><span class="settings-label">API Key</span><input class="settings-input" id="sRadarrKey" value="${config.radarrKey || ''}"></div>
+                </div>
+                <div class="settings-group">
+                    <h3>Sonarr (TV Shows)</h3>
+                    <div class="settings-row"><span class="settings-label">URL</span><input class="settings-input" id="sSonarrUrl" value="${config.sonarrUrl || ''}"></div>
+                    <div class="settings-row"><span class="settings-label">API Key</span><input class="settings-input" id="sSonarrKey" value="${config.sonarrKey || ''}"></div>
+                </div>
+                <div class="settings-group">
+                    <h3>Plex</h3>
+                    <div class="settings-row"><span class="settings-label">URL</span><input class="settings-input" id="sPlexUrl" value="${config.plexUrl || ''}"></div>
+                    <div class="settings-row"><span class="settings-label">Token</span><input class="settings-input" id="sPlexToken" value="${config.plexToken || ''}"></div>
+                </div>
+                <div class="settings-group">
+                    <h3>TMDb (Discover)</h3>
+                    <div class="settings-row"><span class="settings-label">API Key</span><input class="settings-input" id="sTmdbKey" value="${config.tmdbKey || ''}"></div>
+                </div>
+                <button class="btn btn-green" onclick="saveSettings()">Save Settings</button>
+                `;
+            });
+        }
+
+        async function saveSettings() {
+            const config = {
+                radarrUrl: document.getElementById('sRadarrUrl').value,
+                radarrKey: document.getElementById('sRadarrKey').value,
+                sonarrUrl: document.getElementById('sSonarrUrl').value,
+                sonarrKey: document.getElementById('sSonarrKey').value,
+                plexUrl: document.getElementById('sPlexUrl').value,
+                plexToken: document.getElementById('sPlexToken').value,
+                tmdbKey: document.getElementById('sTmdbKey').value
+            };
+            await fetch(API + '/api/config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(config) });
+            showToast('Settings saved');
+        }
+
+        function showDetail(item, type) {
+            const panel = document.getElementById('detailPanel');
+            document.getElementById('detailBackdrop').src = item.backdropUrl || item.posterUrl || '';
+            document.getElementById('detailPoster').src = item.posterUrl || '';
+            document.getElementById('detailTitle').textContent = item.title;
+            document.getElementById('detailMeta').textContent = `${item.year || ''} · ${item.sizeGB ? item.sizeGB + ' GB' : ''} ${item.status ? '· ' + item.status : ''} ${item.episodeCount ? '· ' + item.episodeCount + ' eps' : ''}`;
+            document.getElementById('detailOverview').textContent = item.overview || 'No description available.';
+            document.getElementById('detailActions').innerHTML = `
+                <button class="btn btn-green" onclick="actionKeep(${item.id}, '${type}'); closeDetail()">✓ Keep (6mo)</button>
+                <button class="btn btn-yellow" onclick="actionSuperKeep(${item.id}, '${type}'); closeDetail()">⭐ Super Keep</button>
+                <button class="btn btn-red" onclick="actionBlock(${item.id}, '${type}'); closeDetail()">✗ Block</button>
+                <button class="btn btn-outline" onclick="closeDetail()">Close</button>
+            `;
+            panel.classList.add('open');
+        }
+
+        function showDiscoverDetail(item) {
+            const panel = document.getElementById('detailPanel');
+            document.getElementById('detailBackdrop').src = item.backdropUrl || item.posterUrl || '';
+            document.getElementById('detailPoster').src = item.posterUrl || '';
+            document.getElementById('detailTitle').textContent = item.title;
+            document.getElementById('detailMeta').textContent = `${item.year || ''} · ⭐ ${item.rating ? item.rating.toFixed(1) : 'N/A'}`;
+            document.getElementById('detailOverview').textContent = item.overview || 'No description available.';
+            document.getElementById('detailActions').innerHTML = `
+                <button class="btn btn-green" onclick="discoverAdd(${item.tmdbId}); closeDetail()">+ Add to Library</button>
+                <button class="btn btn-red" onclick="discoverHide(${item.tmdbId}, '${item.title}', '${item.year || ''}', '${item.posterUrl || ''}'); closeDetail()">✗ Hide</button>
+                <button class="btn btn-outline" onclick="closeDetail()">Close</button>
+            `;
+            panel.classList.add('open');
+        }
+
+        function closeDetail() { document.getElementById('detailPanel').classList.remove('open'); }
+
+        async function actionKeep(id, type) {
+            const endpoint = type === 'movies' ? `/api/movies/${id}/keep` : `/api/shows/${id}/keep`;
+            await fetch(API + endpoint, { method: 'POST' });
+            showToast('Kept for 6 months');
+        }
+
+        async function actionSuperKeep(id, type) {
+            const endpoint = type === 'movies' ? `/api/movies/${id}/super_keep` : `/api/shows/${id}/super_keep`;
+            await fetch(API + endpoint, { method: 'POST' });
+            showToast('⭐ Super Keep');
+        }
+
+        async function actionBlock(id, type) {
+            const endpoint = type === 'movies' ? `/api/movies/${id}/block` : `/api/shows/${id}/block`;
+            await fetch(API + endpoint, { method: 'POST' });
+            showToast('Blocked');
+            loadView();
+        }
+
+        async function discoverAdd(tmdbId) {
+            const endpoint = discoverType === 'movies' ? `/api/discover/${tmdbId}/add_movie` : `/api/discover/${tmdbId}/add_show`;
+            await fetch(API + endpoint, { method: 'POST' });
+            showToast('Added to library');
+            loadView();
+        }
+
+        async function discoverHide(tmdbId, title, year, posterUrl) {
+            await fetch(API + `/api/discover/${tmdbId}/hide`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ action: 'hidden', title, year, posterUrl, type: discoverType })
+            });
+            showToast('Hidden');
+            loadView();
+        }
+
+        async function unkeep(id, source) {
+            if (source === 'Movies') await fetch(API + `/api/movies/${id}/unkeep`, { method: 'POST' });
+            else await fetch(API + `/api/shows/${id}/unkeep`, { method: 'POST' });
+            showToast('Un-kept');
+            loadView();
+        }
+
+        async function unblock(id, source) {
+            if (source === 'Movies') await fetch(API + `/api/movies/${id}/unblock`, { method: 'POST' });
+            else await fetch(API + `/api/shows/${id}/unblock`, { method: 'POST' });
+            showToast('Restored');
+            loadView();
+        }
+
+        async function removeDiscover(tmdbId, type) {
+            const endpoint = type === 'show' ? 'remove_show' : 'remove_movie';
+            await fetch(API + `/api/discover/${tmdbId}/${endpoint}`, { method: 'POST' });
+            showToast('Removed from library');
+            loadView();
+        }
+
+        async function unhideDiscover(tmdbId) {
+            await fetch(API + `/api/discover/${tmdbId}/unhide`, { method: 'POST' });
+            showToast('Back in discover');
+            loadView();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // Init
+        loadView();
+    </script>
+</body>
+</html>

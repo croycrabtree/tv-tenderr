@@ -2,6 +2,8 @@ package com.movieswipe
 
 import com.google.gson.Gson
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -239,6 +241,172 @@ class ApiClient(private var baseUrl: String) {
                         callback(null, "HTTP ${it.code}")
                     }
                 }
+            }
+        })
+    }
+
+    // ==================== DISCOVER METHODS ====================
+
+    fun getProviders(callback: (ProvidersResponse?, String?) -> Unit) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/providers")
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(null, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (it.isSuccessful) {
+                        val body = it.body?.string()
+                        callback(gson.fromJson(body, ProvidersResponse::class.java), null)
+                    } else { callback(null, "HTTP ${it.code}") }
+                }
+            }
+        })
+    }
+
+    fun discoverMovies(page: Int = 1, limit: Int = 20, providers: String = "", sortBy: String = "popularity.desc", callback: (DiscoverMoviesResponse?, String?) -> Unit) {
+        val url = "$baseUrl/api/discover/movies?page=$page&limit=$limit&sort_by=$sortBy" + if (providers.isNotEmpty()) "&providers=$providers" else ""
+        val request = Request.Builder().url(url).get().build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(null, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (it.isSuccessful) {
+                        val body = it.body?.string()
+                        callback(gson.fromJson(body, DiscoverMoviesResponse::class.java), null)
+                    } else { callback(null, "HTTP ${it.code}") }
+                }
+            }
+        })
+    }
+
+    fun discoverShows(page: Int = 1, limit: Int = 20, providers: String = "", sortBy: String = "popularity.desc", callback: (DiscoverShowsResponse?, String?) -> Unit) {
+        val url = "$baseUrl/api/discover/shows?page=$page&limit=$limit&sort_by=$sortBy" + if (providers.isNotEmpty()) "&providers=$providers" else ""
+        val request = Request.Builder().url(url).get().build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(null, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (it.isSuccessful) {
+                        val body = it.body?.string()
+                        callback(gson.fromJson(body, DiscoverShowsResponse::class.java), null)
+                    } else { callback(null, "HTTP ${it.code}") }
+                }
+            }
+        })
+    }
+
+    fun hideDiscover(tmdbId: Int, title: String? = null, year: String? = null, posterUrl: String? = null, type: String = "movie", callback: (Boolean, String?) -> Unit = { _, _ -> }) {
+        val bodyMap = mutableMapOf<String, Any>("action" to "hidden")
+        title?.let { bodyMap["title"] = it }
+        year?.let { bodyMap["year"] = it }
+        posterUrl?.let { bodyMap["posterUrl"] = it }
+        bodyMap["type"] = type
+
+        val json = gson.toJson(bodyMap)
+        val body = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$baseUrl/api/discover/$tmdbId/hide")
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(false, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { callback(it.isSuccessful, if (it.isSuccessful) null else "HTTP ${it.code}") }
+            }
+        })
+    }
+
+    fun addMovieFromDiscover(tmdbId: Int, callback: (Boolean, String?) -> Unit) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/discover/$tmdbId/add_movie")
+            .post(RequestBody.create(null, ByteArray(0)))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(false, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { callback(it.isSuccessful, if (it.isSuccessful) null else "HTTP ${it.code}") }
+            }
+        })
+    }
+
+    fun addShowFromDiscover(tmdbId: Int, callback: (Boolean, String?) -> Unit) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/discover/$tmdbId/add_show")
+            .post(RequestBody.create(null, ByteArray(0)))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(false, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { callback(it.isSuccessful, if (it.isSuccessful) null else "HTTP ${it.code}") }
+            }
+        })
+    }
+
+    fun getDiscoverHistory(callback: (HistoryResponse?, String?) -> Unit) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/discover/history")
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(null, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (it.isSuccessful) {
+                        val body = it.body?.string()
+                        callback(gson.fromJson(body, HistoryResponse::class.java), null)
+                    } else { callback(null, "HTTP ${it.code}") }
+                }
+            }
+        })
+    }
+
+    fun unhideDiscover(tmdbId: Int, callback: (Boolean, String?) -> Unit) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/discover/$tmdbId/unhide")
+            .post(RequestBody.create(null, ByteArray(0)))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(false, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { callback(it.isSuccessful, if (it.isSuccessful) null else "HTTP ${it.code}") }
+            }
+        })
+    }
+
+    fun removeMovieFromDiscover(tmdbId: Int, callback: (Boolean, String?) -> Unit) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/discover/$tmdbId/remove_movie")
+            .post(RequestBody.create(null, ByteArray(0)))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(false, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { callback(it.isSuccessful, if (it.isSuccessful) null else "HTTP ${it.code}") }
+            }
+        })
+    }
+
+    fun removeShowFromDiscover(tmdbId: Int, callback: (Boolean, String?) -> Unit) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/discover/$tmdbId/remove_show")
+            .post(RequestBody.create(null, ByteArray(0)))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(false, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { callback(it.isSuccessful, if (it.isSuccessful) null else "HTTP ${it.code}") }
             }
         })
     }

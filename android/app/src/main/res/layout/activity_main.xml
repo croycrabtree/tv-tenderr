@@ -78,16 +78,40 @@
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp" />
 
-    <!-- Gesture hints -->
-    <TextView
-        android:id="@+id/tvSwipeHint"
+    <!-- Discover type toggle (only visible in discover mode) -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="70dp"
-        android:text="← block  ·  keep →  ·  ⭐ super keep ↓"
-        android:textColor="#555"
-        android:textSize="11sp" />
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="68dp"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:id="@+id/discoverControls">
+
+        <TextView
+            android:id="@+id/tvDiscoverToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🎬 Movies"
+            android:textColor="#f39c12"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:padding="8dp"
+            android:background="#33000000"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/tvSortToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔥 Popular"
+            android:textColor="#3498db"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:padding="8dp"
+            android:background="#33000000" />
+    </LinearLayout>
 
     <!-- Bottom action buttons - minimal circles -->
     <LinearLayout

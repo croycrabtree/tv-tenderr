@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -24,7 +23,7 @@ class HistoryActivity : AppCompatActivity() {
     private val allItems = mutableListOf<HistoryItem>()
     private var currentFilter = "all"
     private var searchQuery = ""
-    private var historyMode = "movies" // "movies" or "shows"
+    private var historyMode = "movies"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,23 +39,17 @@ class HistoryActivity : AppCompatActivity() {
         binding.btnBack.setOnClickListener { finish() }
 
         binding.tvFilter.setOnClickListener {
+            if (historyMode == "discover") return@setOnClickListener
             currentFilter = when (currentFilter) {
                 "all" -> "keep"
-                "keep" -> "block"
-                "block" -> "all"
+                "keep" -> "super_keep"
+                "super_keep" -> "block"
+                "block" -> "clean"
+                "clean" -> "all"
                 else -> "all"
             }
-            binding.tvFilter.text = currentFilter.replaceFirstChar { it.uppercase() }
+            binding.tvFilter.text = currentFilter.replaceFirstChar { it.uppercase() }.replace("_", " ")
             refreshList()
-        }
-
-        // Add mode toggle via the filter button long press
-        binding.tvFilter.setOnLongClickListener {
-            historyMode = if (historyMode == "movies") "shows" else "movies"
-            binding.tvFilter.text = "All"
-            currentFilter = "all"
-            loadHistory()
-            true
         }
 
         binding.etSearch.addTextChangedListener(object : TextWatcher {
@@ -78,22 +71,31 @@ class HistoryActivity : AppCompatActivity() {
     }
 
     private fun loadHistory() {
-        if (historyMode == "movies") {
-            api.getHistory { response, error ->
-                runOnUiThread {
-                    if (error != null) return@runOnUiThread
-                    if (response != null) {
+        when (historyMode) {
+            "movies" -> {
+                api.getHistory { response, error ->
+                    runOnUiThread {
+                        if (error != null || response == null) return@runOnUiThread
                         allItems.clear()
                         allItems.addAll(response.history)
                         refreshList()
                     }
                 }
             }
-        } else {
-            api.getShowHistory { response, error ->
-                runOnUiThread {
-                    if (error != null) return@runOnUiThread
-                    if (response != null) {
+            "shows" -> {
+                api.getShowHistory { response, error ->
+                    runOnUiThread {
+                        if (error != null || response == null) return@runOnUiThread
+                        allItems.clear()
+                        allItems.addAll(response.history)
+                        refreshList()
+                    }
+                }
+            }
+            "discover" -> {
+                api.getDiscoverHistory { response, error ->
+                    runOnUiThread {
+                        if (error != null || response == null) return@runOnUiThread
                         allItems.clear()
                         allItems.addAll(response.history)
                         refreshList()
@@ -104,7 +106,7 @@ class HistoryActivity : AppCompatActivity() {
     }
 
     private fun refreshList() {
-        var filtered = if (currentFilter == "all") allItems.toList()
+        var filtered = if (currentFilter == "all" || historyMode == "discover") allItems.toList()
             else allItems.filter { it.action == currentFilter }
 
         if (searchQuery.isNotEmpty()) {
@@ -116,43 +118,47 @@ class HistoryActivity : AppCompatActivity() {
 
         binding.rvHistory.adapter = HistoryAdapter(filtered,
             onUnkeep = { item ->
-                if (historyMode == "movies") {
-                    api.unkeepMovie(item.movieId) { ok, _ ->
-                        if (ok) {
-                            runOnUiThread {
-                                allItems.removeAll { it.movieId == item.movieId }
-                                refreshList()
-                            }
+                when (historyMode) {
+                    "movies" -> {
+                        api.unkeepMovie(item.movieId) { ok, _ ->
+                            if (ok) runOnUiThread { allItems.removeAll { it.movieId == item.movieId }; refreshList() }
                         }
                     }
-                } else {
-                    api.postShowAction(item.movieId, "unkeep") { ok, _ ->
-                        if (ok) {
-                            runOnUiThread {
-                                allItems.removeAll { it.movieId == item.movieId }
-                                refreshList()
+                    "shows" -> {
+                        api.postShowAction(item.movieId, "unkeep") { ok, _ ->
+                            if (ok) runOnUiThread { allItems.removeAll { it.movieId == item.movieId }; refreshList() }
+                        }
+                    }
+                    "discover" -> {
+                        // "Added" items: remove from Radarr/Sonarr
+                        if (item.type == "show") {
+                            api.removeShowFromDiscover(item.movieId) { ok, _ ->
+                                if (ok) runOnUiThread { allItems.removeAll { it.movieId == item.movieId }; refreshList() }
+                            }
+                        } else {
+                            api.removeMovieFromDiscover(item.movieId) { ok, _ ->
+                                if (ok) runOnUiThread { allItems.removeAll { it.movieId == item.movieId }; refreshList() }
                             }
                         }
                     }
                 }
             },
             onUnblock = { item ->
-                if (historyMode == "movies") {
-                    api.unblockMovie(item.movieId) { ok, _ ->
-                        if (ok) {
-                            runOnUiThread {
-                                allItems.removeAll { it.movieId == item.movieId }
-                                refreshList()
-                            }
+                when (historyMode) {
+                    "movies" -> {
+                        api.unblockMovie(item.movieId) { ok, _ ->
+                            if (ok) runOnUiThread { allItems.removeAll { it.movieId == item.movieId }; refreshList() }
                         }
                     }
-                } else {
-                    api.postShowAction(item.movieId, "unblock") { ok, _ ->
-                        if (ok) {
-                            runOnUiThread {
-                                allItems.removeAll { it.movieId == item.movieId }
-                                refreshList()
-                            }
+                    "shows" -> {
+                        api.postShowAction(item.movieId, "unblock") { ok, _ ->
+                            if (ok) runOnUiThread { allItems.removeAll { it.movieId == item.movieId }; refreshList() }
+                        }
+                    }
+                    "discover" -> {
+                        // "Hidden" items: unhide (show in discover again)
+                        api.unhideDiscover(item.movieId) { ok, _ ->
+                            if (ok) runOnUiThread { allItems.removeAll { it.movieId == item.movieId }; refreshList() }
                         }
                     }
                 }
@@ -182,7 +188,7 @@ class HistoryAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
-        holder.tvTitle.text = item.title ?: "Movie #${item.movieId}"
+        holder.tvTitle.text = item.title ?: "Unknown #${item.movieId}"
         holder.tvYear.text = item.year?.toString() ?: ""
 
         when (item.action) {
@@ -213,18 +219,28 @@ class HistoryAdapter(
                 holder.btnUndo.visibility = View.GONE
             }
             "clean" -> {
-                val freed = item.deletedFiles?.let { " (${it} files)" } ?: ""
-                holder.tvAction.text = "🧹 CLEANED$freed"
+                holder.tvAction.text = "🧹 CLEANED"
                 holder.tvAction.setTextColor(Color.parseColor("#3498db"))
                 holder.btnUndo.visibility = View.GONE
+            }
+            "added" -> {
+                holder.tvAction.text = "⬇️ ADDED"
+                holder.tvAction.setTextColor(Color.parseColor("#2ecc71"))
+                holder.btnUndo.text = "Remove"
+                holder.btnUndo.visibility = View.VISIBLE
+                holder.btnUndo.setOnClickListener { onUnkeep(item) }
+            }
+            "hidden" -> {
+                holder.tvAction.text = "✗ DISLIKED"
+                holder.tvAction.setTextColor(Color.parseColor("#e74c3c"))
+                holder.btnUndo.text = "Show Again"
+                holder.btnUndo.visibility = View.VISIBLE
+                holder.btnUndo.setOnClickListener { onUnblock(item) }
             }
         }
 
         item.posterUrl?.let { url ->
-            Glide.with(holder.itemView.context)
-                .load(url)
-                .centerCrop()
-                .into(holder.ivPoster)
+            Glide.with(holder.itemView.context).load(url).centerCrop().into(holder.ivPoster)
         }
     }
 

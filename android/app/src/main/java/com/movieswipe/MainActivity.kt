@@ -31,9 +31,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var api: ApiClient
     private val movies = mutableListOf<Movie>()
     private val shows = mutableListOf<Show>()
+    private val discoverItems = mutableListOf<DiscoverItem>()
     private var currentIndex = 0
     private var isLoading = false
-    private var mode = "movies" // "movies" or "shows"
+    private var mode = "movies" // "movies", "shows", "discover"
+    private var discoverType = "movies" // "movies" or "shows" within discover
+    private var selectedProviders = ""
+    private var discoverPage = 1
+    private var discoverSort = "popularity.desc"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,13 +75,67 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.tvMode.setOnClickListener {
-            mode = if (mode == "movies") "shows" else "movies"
-            binding.tvMode.text = if (mode == "movies") "Movies" else "Shows"
+            mode = when (mode) {
+                "movies" -> "shows"
+                "shows" -> "discover"
+                else -> "movies"
+            }
+            binding.tvMode.text = when (mode) {
+                "movies" -> "Movies"
+                "shows" -> "Shows"
+                "discover" -> "Discover"
+                else -> "Movies"
+            }
+            binding.tvMode.setTextColor(when (mode) {
+                "discover" -> resources.getColor(android.R.color.holo_orange_light, theme)
+                else -> resources.getColor(android.R.color.holo_green_light, theme)
+            })
+            binding.tvDiscoverToggle.visibility = if (mode == "discover") View.VISIBLE else View.GONE
+            findViewById<View>(R.id.discoverControls).visibility = if (mode == "discover") View.VISIBLE else View.GONE
             currentIndex = 0
+            discoverPage = 1
             movies.clear()
             shows.clear()
+            discoverItems.clear()
             binding.cardContainer.removeAllViews()
-            if (mode == "movies") loadMovies() else loadShows()
+            when (mode) {
+                "movies" -> loadMovies()
+                "shows" -> loadShows()
+                "discover" -> loadDiscover()
+            }
+        }
+
+        // Discover type toggle (movies vs shows within discover)
+        binding.tvDiscoverToggle.setOnClickListener {
+            discoverType = if (discoverType == "movies") "shows" else "movies"
+            binding.tvDiscoverToggle.text = if (discoverType == "movies") "🎬 Movies" else "📺 Shows"
+            currentIndex = 0
+            discoverPage = 1
+            discoverItems.clear()
+            binding.cardContainer.removeAllViews()
+            loadDiscover()
+        }
+
+        // Sort toggle
+        findViewById<TextView>(R.id.tvSortToggle).setOnClickListener {
+            discoverSort = when (discoverSort) {
+                "popularity.desc" -> "release_date.desc"
+                "release_date.desc" -> "vote_average.desc"
+                "vote_average.desc" -> "popularity.desc"
+                else -> "popularity.desc"
+            }
+            val label = when (discoverSort) {
+                "popularity.desc" -> "🔥 Popular"
+                "release_date.desc" -> "🆕 Newest"
+                "vote_average.desc" -> "⭐ Top Rated"
+                else -> "🔥 Popular"
+            }
+            findViewById<TextView>(R.id.tvSortToggle).text = label
+            currentIndex = 0
+            discoverPage = 1
+            discoverItems.clear()
+            binding.cardContainer.removeAllViews()
+            loadDiscover()
         }
     }
 
@@ -121,85 +180,111 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         binding.btnKeep.setOnClickListener {
-            if (mode == "movies") {
-                if (movies.isNotEmpty() && currentIndex < movies.size) {
-                    val movie = movies[currentIndex]
-                    animateCardOut(true) {
-                        api.keepMovie(movie.id) { _, _ -> }
-                        advanceCard()
+            when (mode) {
+                "movies" -> {
+                    if (movies.isNotEmpty() && currentIndex < movies.size) {
+                        val movie = movies[currentIndex]
+                        animateCardOut(true) { api.keepMovie(movie.id) { _, _ -> }; advanceCard() }
                     }
                 }
-            } else {
-                if (shows.isNotEmpty() && currentIndex < shows.size) {
-                    val show = shows[currentIndex]
-                    animateCardOut(true) {
-                        api.keepShow(show.id) { _, _ -> }
-                        advanceCard()
+                "shows" -> {
+                    if (shows.isNotEmpty() && currentIndex < shows.size) {
+                        val show = shows[currentIndex]
+                        animateCardOut(true) { api.keepShow(show.id) { _, _ -> }; advanceCard() }
+                    }
+                }
+                "discover" -> {
+                    if (discoverItems.isNotEmpty() && currentIndex < discoverItems.size) {
+                        val item = discoverItems[currentIndex]
+                        animateCardOut(true) {
+                            if (discoverType == "movies") api.addMovieFromDiscover(item.tmdbId) { _, _ -> }
+                            else api.addShowFromDiscover(item.tmdbId) { _, _ -> }
+                            advanceCard()
+                        }
                     }
                 }
             }
         }
 
-        // Long press = super keep (forever)
+        // Long press keep = super keep (only for library modes)
         binding.btnKeep.setOnLongClickListener {
-            if (mode == "movies") {
-                if (movies.isNotEmpty() && currentIndex < movies.size) {
-                    val movie = movies[currentIndex]
-                    animateCardOut(true) {
-                        api.superKeepMovie(movie.id) { _, _ -> }
-                        advanceCard()
+            when (mode) {
+                "movies" -> {
+                    if (movies.isNotEmpty() && currentIndex < movies.size) {
+                        val movie = movies[currentIndex]
+                        animateCardOut(true) { api.superKeepMovie(movie.id) { _, _ -> }; advanceCard() }
+                        android.widget.Toast.makeText(this, "⭐ Super Keep: ${movie.title}", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                    android.widget.Toast.makeText(this, "⭐ Super Keep: ${movie.title}", android.widget.Toast.LENGTH_SHORT).show()
                 }
-            } else {
-                if (shows.isNotEmpty() && currentIndex < shows.size) {
-                    val show = shows[currentIndex]
-                    animateCardOut(true) {
-                        api.superKeepShow(show.id) { _, _ -> }
-                        advanceCard()
+                "shows" -> {
+                    if (shows.isNotEmpty() && currentIndex < shows.size) {
+                        val show = shows[currentIndex]
+                        animateCardOut(true) { api.superKeepShow(show.id) { _, _ -> }; advanceCard() }
+                        android.widget.Toast.makeText(this, "⭐ Super Keep: ${show.title}", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                    android.widget.Toast.makeText(this, "⭐ Super Keep: ${show.title}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                "discover" -> {
+                    // In discover, long-press keep = add and search immediately
+                    if (discoverItems.isNotEmpty() && currentIndex < discoverItems.size) {
+                        val item = discoverItems[currentIndex]
+                        animateCardOut(true) {
+                            if (discoverType == "movies") api.addMovieFromDiscover(item.tmdbId) { _, _ -> }
+                            else api.addShowFromDiscover(item.tmdbId) { _, _ -> }
+                            advanceCard()
+                        }
+                        android.widget.Toast.makeText(this, "⬇️ Added: ${item.title}", android.widget.Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
             true
         }
 
         binding.btnBlock.setOnClickListener {
-            if (mode == "movies") {
-                if (movies.isNotEmpty() && currentIndex < movies.size) {
-                    blockWithUndo()
-                }
-            } else {
-                if (shows.isNotEmpty() && currentIndex < shows.size) {
-                    blockShowWithUndo()
+            when (mode) {
+                "movies" -> { if (movies.isNotEmpty() && currentIndex < movies.size) blockWithUndo() }
+                "shows" -> { if (shows.isNotEmpty() && currentIndex < shows.size) blockShowWithUndo() }
+                "discover" -> {
+                    if (discoverItems.isNotEmpty() && currentIndex < discoverItems.size) {
+                        val item = discoverItems[currentIndex]
+                        animateCardOut(false) {
+                            api.hideDiscover(item.tmdbId, item.title, item.year, item.posterUrl, discoverType) { _, _ -> }
+                            advanceCard()
+                        }
+                    }
                 }
             }
         }
 
         binding.btnSkip.setOnClickListener {
-            if (mode == "movies") {
-                if (movies.isNotEmpty() && currentIndex < movies.size) {
-                    val movie = movies[currentIndex]
-                    api.skipMovie(movie.id) { _, _ -> }
-                    advanceCard()
+            when (mode) {
+                "movies" -> {
+                    if (movies.isNotEmpty() && currentIndex < movies.size) {
+                        val movie = movies[currentIndex]
+                        api.skipMovie(movie.id) { _, _ -> }; advanceCard()
+                    }
                 }
-            } else {
-                if (shows.isNotEmpty() && currentIndex < shows.size) {
-                    val show = shows[currentIndex]
-                    api.skipShow(show.id) { _, _ -> }
-                    advanceCard()
+                "shows" -> {
+                    if (shows.isNotEmpty() && currentIndex < shows.size) {
+                        val show = shows[currentIndex]
+                        api.skipShow(show.id) { _, _ -> }; advanceCard()
+                    }
+                }
+                "discover" -> {
+                    if (discoverItems.isNotEmpty() && currentIndex < discoverItems.size) {
+                        val item = discoverItems[currentIndex]
+                        api.hideDiscover(item.tmdbId, item.title, item.year, item.posterUrl, discoverType) { _, _ -> }; advanceCard()
+                    }
                 }
             }
         }
 
-        // Long press skip on shows = clean files, keep monitoring
+        // Long press skip on shows = clean files
         binding.btnSkip.setOnLongClickListener {
             if (mode == "shows" && shows.isNotEmpty() && currentIndex < shows.size) {
                 val show = shows[currentIndex]
                 val showIndex = currentIndex
                 animateCardOut(false) {
                     showUndoBanner("\"${show.title}\" files will be removed") {
-                        // Undo - re-monitor episodes
                         api.uncleanShow(show.id) { _, _ -> }
                         shows.add(showIndex, show)
                         currentIndex = showIndex
@@ -207,9 +292,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     pendingBlock = {
                         api.cleanShow(show.id) { ok, _ ->
-                            runOnUiThread {
-                                if (ok) android.widget.Toast.makeText(this, "🧹 Cleaned: ${show.title}", android.widget.Toast.LENGTH_SHORT).show()
-                            }
+                            runOnUiThread { if (ok) android.widget.Toast.makeText(this, "🧹 Cleaned: ${show.title}", android.widget.Toast.LENGTH_SHORT).show() }
                         }
                     }
                     advanceCard()
@@ -332,28 +415,36 @@ class MainActivity : AppCompatActivity() {
     private fun showCurrentCard() {
         binding.cardContainer.removeAllViews()
 
-        if (mode == "movies") {
-            if (currentIndex >= movies.size) {
-                loadMovies()
-                return
+        when (mode) {
+            "movies" -> {
+                if (currentIndex >= movies.size) { loadMovies(); return }
+                val movie = movies[currentIndex]
+                val cardView = createMovieCardView(movie)
+                binding.cardContainer.addView(cardView)
+                setupMovieSwipeGesture(cardView, movie)
             }
-            val movie = movies[currentIndex]
-            val cardView = createMovieCardView(movie)
-            binding.cardContainer.addView(cardView)
-            setupMovieSwipeGesture(cardView as CardView, movie)
-        } else {
-            if (currentIndex >= shows.size) {
-                loadShows()
-                return
+            "shows" -> {
+                if (currentIndex >= shows.size) { loadShows(); return }
+                val show = shows[currentIndex]
+                val cardView = createShowCardView(show)
+                binding.cardContainer.addView(cardView)
+                setupShowSwipeGesture(cardView, show)
             }
-            val show = shows[currentIndex]
-            val cardView = createShowCardView(show)
-            binding.cardContainer.addView(cardView)
-            setupShowSwipeGesture(cardView as CardView, show)
+            "discover" -> {
+                if (currentIndex >= discoverItems.size) {
+                    discoverPage++
+                    loadDiscover()
+                    return
+                }
+                val item = discoverItems[currentIndex]
+                val cardView = createDiscoverCardView(item)
+                binding.cardContainer.addView(cardView)
+                setupDiscoverSwipeGesture(cardView, item)
+            }
         }
     }
 
-    private fun createMovieCardView(movie: Movie): View {
+    private fun createMovieCardView(movie: Movie): CardView {
         val cardView = LayoutInflater.from(this).inflate(R.layout.card_movie, binding.cardContainer, false) as CardView
 
         val ivPoster = cardView.findViewById<ImageView>(R.id.ivPoster)
@@ -507,7 +598,7 @@ class MainActivity : AppCompatActivity() {
         showCurrentCard()
     }
 
-    private fun createShowCardView(show: Show): View {
+    private fun createShowCardView(show: Show): CardView {
         val cardView = LayoutInflater.from(this).inflate(R.layout.card_movie, binding.cardContainer, false) as CardView
 
         val ivPoster = cardView.findViewById<ImageView>(R.id.ivPoster)
@@ -658,11 +749,134 @@ class MainActivity : AppCompatActivity() {
             duration = 300
             interpolator = AccelerateDecelerateInterpolator()
             addListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    onEnd()
-                }
+                override fun onAnimationEnd(animation: Animator) { onEnd() }
             })
             start()
+        }
+    }
+
+    // ==================== DISCOVER METHODS ====================
+
+    private fun loadDiscover() {
+        if (isLoading) return
+        isLoading = true
+        binding.tvStats.text = "Loading discover..."
+
+        val prefs = getSharedPreferences("movieswipe", MODE_PRIVATE)
+        selectedProviders = prefs.getString("selected_providers", "") ?: ""
+
+        if (discoverType == "movies") {
+            api.discoverMovies(page = discoverPage, limit = 20, providers = selectedProviders, sortBy = discoverSort) { response, error ->
+                runOnUiThread {
+                    isLoading = false
+                    if (error != null) { binding.tvStats.text = "Error: $error"; return@runOnUiThread }
+                    if (response != null && response.movies.isNotEmpty()) {
+                        discoverItems.clear()
+                        discoverItems.addAll(response.movies)
+                        currentIndex = 0
+                        binding.tvStats.text = "Discover: page $discoverPage"
+                        showCurrentCard()
+                    } else {
+                        binding.tvStats.text = "No more movies!"
+                    }
+                }
+            }
+        } else {
+            api.discoverShows(page = discoverPage, limit = 20, providers = selectedProviders, sortBy = discoverSort) { response, error ->
+                runOnUiThread {
+                    isLoading = false
+                    if (error != null) { binding.tvStats.text = "Error: $error"; return@runOnUiThread }
+                    if (response != null && response.shows.isNotEmpty()) {
+                        discoverItems.clear()
+                        discoverItems.addAll(response.shows)
+                        currentIndex = 0
+                        binding.tvStats.text = "Discover: page $discoverPage"
+                        showCurrentCard()
+                    } else {
+                        binding.tvStats.text = "No more shows!"
+                    }
+                }
+            }
+        }
+    }
+
+    private fun createDiscoverCardView(item: DiscoverItem): CardView {
+        val cardView = LayoutInflater.from(this).inflate(R.layout.card_movie, binding.cardContainer, false) as CardView
+
+        val ivPoster = cardView.findViewById<ImageView>(R.id.ivPoster)
+        val tvTitle = cardView.findViewById<TextView>(R.id.tvTitle)
+        val tvYear = cardView.findViewById<TextView>(R.id.tvYear)
+        val tvSize = cardView.findViewById<TextView>(R.id.tvSize)
+        val tvRating = cardView.findViewById<TextView>(R.id.tvRating)
+        val tvGenres = cardView.findViewById<TextView>(R.id.tvGenres)
+        val tvOverview = cardView.findViewById<TextView>(R.id.tvOverview)
+
+        tvTitle.text = item.title
+        tvYear.text = item.year ?: ""
+        tvSize.text = if (discoverType == "movies") "🎬 Movie" else "📺 Show"
+        tvRating.text = item.rating?.let { "⭐ ${String.format("%.1f", it)}"} ?: ""
+        tvGenres.text = ""
+        tvOverview.text = item.overview
+
+        item.posterUrl?.let { url ->
+            Glide.with(this).load(url).centerCrop().into(ivPoster)
+        }
+
+        return cardView
+    }
+
+    private fun setupDiscoverSwipeGesture(cardView: CardView, item: DiscoverItem) {
+        var startX = 0f
+        var startY = 0f
+        var currentX = 0f
+        var currentY = 0f
+        val threshold = 200f
+
+        val tvKeepLabel = cardView.findViewById<TextView>(R.id.tvKeepLabel)
+        val tvBlockLabel = cardView.findViewById<TextView>(R.id.tvBlockLabel)
+
+        cardView.setOnTouchListener { v, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    startX = event.rawX; startY = event.rawY; true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    currentX = event.rawX - startX; currentY = event.rawY - startY
+                    if (abs(currentX) > abs(currentY) && abs(currentX) > 10) {
+                        v.translationX = currentX; v.rotation = currentX / 30f
+                        if (currentX > 50) {
+                            tvKeepLabel.visibility = View.VISIBLE; tvKeepLabel.text = "ADD"
+                            tvKeepLabel.alpha = minOf(abs(currentX) / threshold, 1f)
+                            tvKeepLabel.setTextColor(resources.getColor(android.R.color.holo_green_light, theme))
+                            tvBlockLabel.visibility = View.GONE
+                        } else if (currentX < -50) {
+                            tvBlockLabel.visibility = View.VISIBLE; tvBlockLabel.text = "HIDE"
+                            tvBlockLabel.alpha = minOf(abs(currentX) / threshold, 1f)
+                            tvKeepLabel.visibility = View.GONE
+                        }
+                        true
+                    } else { false }
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    if (abs(currentX) > threshold && abs(currentX) > abs(currentY)) {
+                        val goRight = currentX > 0
+                        if (goRight) {
+                            animateCardOut(true) {
+                                if (discoverType == "movies") api.addMovieFromDiscover(item.tmdbId) { _, _ -> }
+                                else api.addShowFromDiscover(item.tmdbId) { _, _ -> }
+                                advanceCard()
+                            }
+                        } else {
+                            animateCardOut(false) { api.hideDiscover(item.tmdbId, item.title, item.year, item.posterUrl, discoverType) { _, _ -> }; advanceCard() }
+                        }
+                    } else {
+                        v.animate().translationX(0f).translationY(0f).rotation(0f).setDuration(200).start()
+                        tvKeepLabel.visibility = View.GONE; tvBlockLabel.visibility = View.GONE
+                    }
+                    currentX = 0f; currentY = 0f; true
+                }
+                else -> false
+            }
         }
     }
 }

@@ -36,7 +36,8 @@ data class HistoryItem(
     val tmdbId: Int?,
     val posterUrl: String?,
     val deletedFiles: Int?,
-    val freedGB: Double?
+    val freedGB: Double?,
+    val type: String?
 )
 
 data class HistoryResponse(
@@ -62,4 +63,35 @@ data class Show(
 data class ShowsResponse(
     val shows: List<Show>,
     val total: Int
+)
+
+data class DiscoverItem(
+    val tmdbId: Int,
+    val title: String,
+    val year: String?,
+    val overview: String?,
+    val rating: Double?,
+    val posterUrl: String?,
+    val backdropUrl: String?
+)
+
+data class DiscoverMoviesResponse(
+    val movies: List<DiscoverItem>,
+    val total: Int
+)
+
+data class DiscoverShowsResponse(
+    val shows: List<DiscoverItem>,
+    val total: Int
+)
+
+data class Provider(
+    val id: Int,
+    val name: String,
+    val logo: String?
+)
+
+data class ProvidersResponse(
+    val movie_providers: List<Provider>,
+    val tv_providers: List<Provider>
 )
