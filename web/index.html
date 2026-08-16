@@ -560,6 +560,8 @@
         function loadSettings(content) {
             fetch(API + '/api/config').then(r => r.json()).then(config => {
                 content.innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div>
                 <div class="settings-group">
                     <h3>Backend</h3>
                     <div class="settings-row"><span class="settings-label">Server URL</span><input class="settings-input" id="sBackendUrl" value="${config.backendUrl || 'http://localhost:8899'}"></div>
@@ -584,6 +586,58 @@
                     <div class="settings-row"><span class="settings-label">API Key</span><input class="settings-input" id="sTmdbKey" value="${config.tmdbKey || ''}"></div>
                 </div>
                 <button class="btn btn-green" onclick="saveSettings()">Save Settings</button>
+                </div>
+                <div>
+                <div class="settings-group">
+                    <h3>📖 How to Use</h3>
+
+                    <h4 style="color:#eee;margin:12px 0 8px;font-size:13px">🎬 Movies &amp; Shows</h4>
+                    <div style="font-size:12px;color:#aaa;line-height:1.8">
+                        <strong>Card View (drag or click buttons):</strong><br>
+                        → Drag right = Keep (6 months)<br>
+                        ← Drag left = Block &amp; delete (10s undo)<br>
+                        ↓ Drag down = Super Keep (forever)<br>
+                        ↑ Drag up = Skip<br><br>
+                        <strong>Grid View (hover for buttons):</strong><br>
+                        ✓ Green = Keep · ✗ Red = Block · ⭐ Blue = Super Keep<br><br>
+                        <strong>Buttons (right side):</strong><br>
+                        ✗ Red = Block with undo<br>
+                        → Yellow = Skip<br>
+                        ✓/+ Green = Keep / Add<br>
+                        ⭐ Blue = Super Keep
+                    </div>
+
+                    <h4 style="color:#eee;margin:16px 0 8px;font-size:13px">🔍 Discover</h4>
+                    <div style="font-size:12px;color:#aaa;line-height:1.8">
+                        Swipe/click right to <strong>add</strong> to Radarr/Sonarr.<br>
+                        Swipe/click left to <strong>hide</strong> from feed permanently.<br><br>
+                        Toggle <strong>🎬/📺</strong> to switch Movies/Shows.<br>
+                        Toggle <strong>🔥/🆕/⭐</strong> to change sort order.<br><br>
+                        Automatically filters out items already in your library.
+                    </div>
+
+                    <h4 style="color:#eee;margin:16px 0 8px;font-size:13px">📋 History</h4>
+                    <div style="font-size:12px;color:#aaa;line-height:1.8">
+                        Click <strong>History</strong> in sidebar to view all actions.<br>
+                        Shows Movies, Shows, and Discover history combined.<br>
+                        Undo buttons restore items or remove additions.
+                    </div>
+
+                    <h4 style="color:#eee;margin:16px 0 8px;font-size:13px">🔄 Plex Refresh</h4>
+                    <div style="font-size:12px;color:#aaa;line-height:1.8">
+                        After deleting content, Plex needs to rescan.<br>
+                        The app/web triggers this automatically on block.
+                    </div>
+
+                    <h4 style="color:#eee;margin:16px 0 8px;font-size:13px">⚙️ Settings</h4>
+                    <div style="font-size:12px;color:#aaa;line-height:1.8">
+                        Configure all service connections here.<br>
+                        Quality profiles and root folders auto-populate<br>
+                        from Radarr/Sonarr after saving credentials.
+                    </div>
+                </div>
+                </div>
+                </div>
                 `;
             });
         }

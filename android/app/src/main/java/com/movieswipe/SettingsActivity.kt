@@ -131,7 +131,6 @@ class SettingsActivity : AppCompatActivity() {
                         val sonarrKey = config["sonarrKey"]?.toString() ?: return@use
 
                         runOnUiThread {
-                            // Fill empty fields from backend config
                             if (binding.etRadarrUrl.text.isEmpty()) binding.etRadarrUrl.setText(radarrUrl)
                             if (binding.etRadarrKey.text.isEmpty()) binding.etRadarrKey.setText(radarrKey)
                             if (binding.etSonarrUrl.text.isEmpty()) binding.etSonarrUrl.setText(sonarrUrl)
@@ -141,7 +140,6 @@ class SettingsActivity : AppCompatActivity() {
                             if (binding.etTmdbKey.text.isEmpty()) binding.etTmdbKey.setText(config["tmdbKey"]?.toString() ?: "")
                         }
 
-                        // Fetch quality profiles and root folders
                         fetchProfiles(radarrUrl, radarrKey, "radarr")
                         fetchRoots(radarrUrl, radarrKey, "radarr")
                         fetchProfiles(sonarrUrl, sonarrKey, "sonarr")
@@ -173,7 +171,6 @@ class SettingsActivity : AppCompatActivity() {
                                 val adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, radarrProfiles.map { it.second })
                                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                                 binding.spinnerRadarrQuality.adapter = adapter
-                                // Restore saved selection
                                 val savedId = getSharedPreferences("movieswipe", MODE_PRIVATE).getInt("radarr_quality_id", 4)
                                 val pos = radarrProfiles.indexOfFirst { it.first == savedId }
                                 if (pos >= 0) binding.spinnerRadarrQuality.setSelection(pos)

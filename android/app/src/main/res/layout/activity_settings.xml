@@ -268,6 +268,27 @@
             android:background="@drawable/search_bg"
             android:layout_marginBottom="32dp" />
 
+        <!-- Help / Instructions -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="How to Use"
+            android:textColor="#2ecc71"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎬 MOVIES &amp; SHOWS\n\nSwipe Gestures:\n  → Right = Keep (6 months)\n  ← Left = Block &amp; delete (10s undo)\n  ↓ Down = Super Keep (forever)\n  ↑ Up = Skip\n\nButtons:\n  ✗ Red = Block with undo\n  → Yellow = Skip\n  ✓ Green = Keep\n  Long-press ✓ = Super Keep\n  Long-press → (Shows) = Clean files\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🔍 DISCOVER\n\nSwipe right to add to Radarr/Sonarr.\nSwipe left to hide from feed.\n\nToggle 🎬/📺 to switch Movies/Shows.\nToggle 🔥/🆕/⭐ to change sort order.\n\nFilters out items already in your library.\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📋 HISTORY\n\nTap the clock icon to view history.\nHistory matches your current mode.\nUndo buttons restore items.\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🔄 PLEX REFRESH\n\nTap refresh icon after deleting to\nupdate your Plex library."
+            android:textColor="#888"
+            android:textSize="12sp"
+            android:lineSpacingExtra="2dp"
+            android:background="#11000000"
+            android:padding="12dp"
+            android:layout_marginBottom="32dp" />
+
         <!-- Save Button -->
         <Button
             android:id="@+id/btnSave"
