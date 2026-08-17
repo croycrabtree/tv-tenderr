@@ -155,24 +155,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showSettingsDialogOrLoad() {
-        val prefs = getSharedPreferences("movieswipe", MODE_PRIVATE)
-        val serverUrl = prefs.getString("server_url", "http://localhost:8899") ?: "http://localhost:8899"
-
-        // Show splash screen
-        val splashView = layoutInflater.inflate(R.layout.activity_splash, null)
-        setContentView(splashView)
-
-        // Delay then load main UI
-        splashView.postDelayed({
-            binding = ActivityMainBinding.inflate(layoutInflater)
-            setContentView(binding.root)
-            api = ApiClient(serverUrl)
-            setupButtons()
-            loadMovies()
-        }, 2000)
-    }
-
     private fun setupButtons() {
         binding.btnKeep.setOnClickListener {
             when (mode) {
