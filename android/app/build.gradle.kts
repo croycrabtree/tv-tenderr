@@ -15,9 +15,19 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("tv-tenderr-release.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "Hogwash101"
+            keyAlias = "tv-tenderr"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "Hogwash101"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
