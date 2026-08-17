@@ -29,8 +29,8 @@
         .sidebar-item { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; font-size: 20px; }
         .sidebar-item:hover { background: rgba(255,255,255,0.1); }
         .sidebar-item.active { background: var(--accent); }
-        .sidebar-logo { margin-bottom: 12px; display: flex; align-items: center; justify-content: center; }
-        .sidebar-logo img { width: 48px; height: 48px; border-radius: 50%; }
+        .sidebar-logo { margin-bottom: 16px; display: flex; align-items: center; justify-content: center; }
+        .sidebar-logo img { width: 36px; height: 36px; border-radius: 50%; }
 
         /* Main content */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -165,7 +165,7 @@
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
-        <div class="sidebar-logo"><img src="/static/icon_round_64.png" alt="TV Tenderr"></div>
+        <div class="sidebar-logo"><img src="/static/icon_round_64.png" alt="TV Tenderr" style="width:48px;height:48px;border-radius:50%;"></div>
         <div class="sidebar-item active" data-view="movies" title="Movies">🎬</div>
         <div class="sidebar-item" data-view="shows" title="Shows">📺</div>
         <div class="sidebar-item" data-view="discover" title="Discover">🔍</div>
