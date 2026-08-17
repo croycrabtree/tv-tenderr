@@ -7,15 +7,16 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
-            --bg-dark: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-sidebar: #0f3460;
-            --accent: #e94560;
-            --accent-green: #2ecc71;
-            --accent-yellow: #f39c12;
+            --bg-dark: #0D1117;
+            --bg-card: #161B22;
+            --bg-sidebar: #1A2332;
+            --accent: #FF6B35;
+            --accent-green: #2DC653;
+            --accent-yellow: #FF6B35;
             --accent-blue: #3498db;
-            --text: #eee;
-            --text-dim: #888;
+            --accent-red: #E63946;
+            --text: #FFFFFF;
+            --text-dim: #8B949E;
             --text-muted: #555;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-dark); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
@@ -25,7 +26,8 @@
         .sidebar-item { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; font-size: 20px; }
         .sidebar-item:hover { background: rgba(255,255,255,0.1); }
         .sidebar-item.active { background: var(--accent); }
-        .sidebar-logo { font-size: 18px; font-weight: 800; color: var(--accent); margin-bottom: 16px; letter-spacing: -1px; }
+        .sidebar-logo { margin-bottom: 12px; display: flex; align-items: center; justify-content: center; }
+        .sidebar-logo img { width: 48px; height: 48px; border-radius: 50%; }
 
         /* Main content */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -160,7 +162,7 @@
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
-        <div class="sidebar-logo">TVT</div>
+        <div class="sidebar-logo"><img src="/static/icon_round_64.png" alt="TV Tenderr"></div>
         <div class="sidebar-item active" data-view="movies" title="Movies">🎬</div>
         <div class="sidebar-item" data-view="shows" title="Shows">📺</div>
         <div class="sidebar-item" data-view="discover" title="Discover">🔍</div>

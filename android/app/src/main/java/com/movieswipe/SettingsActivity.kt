@@ -28,13 +28,13 @@ class SettingsActivity : AppCompatActivity() {
 
         // Load saved settings
         binding.etBackendUrl.setText(serverUrl)
-        binding.etRadarrUrl.setText(prefs.getString("radarr_url", ""))
-        binding.etRadarrKey.setText(prefs.getString("radarr_key", ""))
-        binding.etSonarrUrl.setText(prefs.getString("sonarr_url", ""))
-        binding.etSonarrKey.setText(prefs.getString("sonarr_key", ""))
-        binding.etPlexUrl.setText(prefs.getString("plex_url", ""))
-        binding.etPlexToken.setText(prefs.getString("plex_token", ""))
-        binding.etTmdbKey.setText(prefs.getString("tmdb_key", ""))
+        binding.etRadarrUrl.setText(prefs.getString("radarr_url", "http://localhost:7878"))
+        binding.etRadarrKey.setText(prefs.getString("radarr_key", "YOUR_RADARR_API_KEY"))
+        binding.etSonarrUrl.setText(prefs.getString("sonarr_url", "http://localhost:8989"))
+        binding.etSonarrKey.setText(prefs.getString("sonarr_key", "YOUR_SONARR_API_KEY"))
+        binding.etPlexUrl.setText(prefs.getString("plex_url", "http://localhost:32400"))
+        binding.etPlexToken.setText(prefs.getString("plex_token", "YOUR_PLEX_TOKEN"))
+        binding.etTmdbKey.setText(prefs.getString("tmdb_key", "YOUR_TMDB_KEY"))
 
         // Load quality/root options from backend
         loadQualityProfiles(serverUrl)

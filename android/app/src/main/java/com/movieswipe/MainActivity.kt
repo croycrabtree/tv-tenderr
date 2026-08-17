@@ -43,16 +43,25 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
         val serverUrl = getSharedPreferences("movieswipe", MODE_PRIVATE)
             .getString("server_url", "http://localhost:8899") ?: "http://localhost:8899"
         api = ApiClient(serverUrl)
 
-        setupButtons()
-        showSettingsDialogOrLoad()
+        // Show splash screen
+        setContentView(R.layout.activity_splash)
 
+        // After delay, load main UI
+        window.decorView.postDelayed({
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+            setupButtons()
+            setupNavigation()
+            loadMovies()
+        }, 2000)
+    }
+
+    private fun setupNavigation() {
         binding.btnHistory.setOnClickListener {
             val intent = android.content.Intent(this, HistoryActivity::class.java)
             intent.putExtra("mode", mode)
@@ -147,42 +156,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSettingsDialogOrLoad() {
-        // For first run, ask for server URL
         val prefs = getSharedPreferences("movieswipe", MODE_PRIVATE)
-        val serverUrl = prefs.getString("server_url", null)
+        val serverUrl = prefs.getString("server_url", "http://localhost:8899") ?: "http://localhost:8899"
 
-        if (serverUrl == null) {
-            val input = EditText(this).apply {
-                hint = "http://localhost:8899"
-                setPadding(48, 32, 48, 32)
-                setTextColor(Color.WHITE)
-                setHintTextColor(Color.GRAY)
-            }
+        // Show splash screen
+        val splashView = layoutInflater.inflate(R.layout.activity_splash, null)
+        setContentView(splashView)
 
-                AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_Dialog)
-                    .setTitle("Server URL")
-                    .setMessage("Enter the Movie Swipe server address")
-                    .setView(input)
-                    .setPositiveButton("Connect") { _, _ ->
-                        val url = input.text.toString().trim()
-                        if (url.isNotBlank()) {
-                            prefs.edit().putString("server_url", url).apply()
-                            api.setUrl(url)
-                            loadMovies()
-                        }
-                    }
-                    .setNeutralButton("Use Default") { _, _ ->
-                        val defaultUrl = "http://localhost:8899"
-                        prefs.edit().putString("server_url", defaultUrl).apply()
-                        api.setUrl(defaultUrl)
-                        loadMovies()
-                    }
-                .setCancelable(false)
-                .show()
-        } else {
-            api.setUrl(serverUrl)
+        // Delay then load main UI
+        splashView.postDelayed({
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+            api = ApiClient(serverUrl)
+            setupButtons()
             loadMovies()
-        }
+        }, 2000)
     }
 
     private fun setupButtons() {
