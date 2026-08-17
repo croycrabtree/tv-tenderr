@@ -22,3 +22,12 @@ data/
 android/gradlew
 android/gradlew.bat
 android/gradle/
+
+# Experimental/logo variants
+scripts/
+web/icon_round.png
+web/icon_round_128.png
+web/logo_clean.png
+web/logo_full.png
+web/logo_full_200.png
+web/logo.svg
