@@ -7,7 +7,7 @@ A Tinder-style app for managing your Plex media library. Swipe through movies an
 
 ## Features
 
-- **Swipe gestures** — right to keep, left to block, down for super keep
+- **Swipe gestures** — right to keep, left to block (deletes files + import list exclusion), down for super keep
 - **Plex integration** — refresh libraries from your phone
 - **Radarr & Sonarr** — manage movies and TV shows
 - **Discover** — find new content from all streaming services via TMDb
@@ -60,7 +60,7 @@ tv-tenderr/
 - `GET /api/movies` — list all movies
 - `GET /api/shows` — list all shows
 - `POST /api/movies/{id}/keep` — keep a movie
-- `POST /api/movies/{id}/block` — block a movie
+- `POST /api/movies/{id}/block` — block a movie (deletes files, adds import list exclusion)
 - `GET /api/discover/movies` — discover new movies
 - `GET /api/discover/shows` — discover new shows
 - `POST /api/plex/refresh` — refresh Plex libraries
