@@ -307,6 +307,8 @@
             const status = item.status === 'continuing' ? '🟢 Continuing' : item.status === 'ended' ? '🔴 Ended' : '';
             const eps = item.episodeCount ? `${item.episodeCount} eps` : '';
             const overview = item.overview || '';
+            const cast = (item.cast && item.cast.length) ? item.cast.join(', ') : '';
+            const watched = item.watched ? '👁 Watched' : '';
 
             content.innerHTML = `
                 <div class="single-card-container">
@@ -331,6 +333,8 @@
                         <div class="single-card-info">
                             <div class="single-card-title">${title}</div>
                             <div class="single-card-meta">${year} ${size ? '· ' + size : ''} ${status ? '· ' + status : ''} ${eps ? '· ' + eps : ''} ${rating ? '· ' + rating : ''}</div>
+                            ${cast ? `<div class="single-card-cast" style="font-size:11px;color:#aaa;margin-top:2px;">${cast}</div>` : ''}
+                            ${watched ? `<div class="single-card-watched" style="font-size:11px;color:#4CAF50;margin-top:2px;">${watched}</div>` : ''}
                             <div class="single-card-overview">${overview}</div>
                         </div>
                     </div>
@@ -489,6 +493,8 @@
                                 <span>${item.year || ''}</span>
                                 <span class="card-rating">${item.sizeGB ? item.sizeGB + ' GB' : ''} ${item.status === 'continuing' ? '🟢' : item.status === 'ended' ? '🔴' : ''}</span>
                             </div>
+                            ${item.cast && item.cast.length ? `<div style="font-size:10px;color:#aaa;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.cast.join(', ')}</div>` : ''}
+                            ${item.watched ? `<div style="font-size:10px;color:#4CAF50;margin-top:1px;">👁 Watched</div>` : ''}
                         </div>
                     </div>
                 `).join('')}</div>`;
@@ -521,6 +527,7 @@
                                 <span>${item.year || ''}</span>
                                 <span class="card-rating">⭐ ${item.rating ? item.rating.toFixed(1) : 'N/A'}</span>
                             </div>
+                            ${item.cast && item.cast.length ? `<div style="font-size:10px;color:#aaa;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.cast.join(', ')}</div>` : ''}
                         </div>
                     </div>
                 `).join('')}</div>`;
@@ -667,7 +674,12 @@
             document.getElementById('detailPoster').src = item.posterUrl || '';
             document.getElementById('detailTitle').textContent = item.title;
             document.getElementById('detailMeta').textContent = `${item.year || ''} · ${item.sizeGB ? item.sizeGB + ' GB' : ''} ${item.status ? '· ' + item.status : ''} ${item.episodeCount ? '· ' + item.episodeCount + ' eps' : ''}`;
-            document.getElementById('detailOverview').textContent = item.overview || 'No description available.';
+            const castText = (item.cast && item.cast.length) ? item.cast.join(', ') : '';
+            const watchedText = item.watched ? '👁 Watched in Plex' : '';
+            document.getElementById('detailOverview').innerHTML = 
+                (castText ? `<div style="color:#aaa;font-size:13px;margin-bottom:8px;"><strong>Cast:</strong> ${castText}</div>` : '') +
+                (watchedText ? `<div style="color:#4CAF50;font-size:13px;margin-bottom:8px;">${watchedText}</div>` : '') +
+                `<div>${item.overview || 'No description available.'}</div>`;
             document.getElementById('detailActions').innerHTML = `
                 <button class="btn btn-green" onclick="actionKeep(${item.id}, '${type}'); closeDetail()">✓ Keep (6mo)</button>
                 <button class="btn btn-yellow" onclick="actionSuperKeep(${item.id}, '${type}'); closeDetail()">⭐ Super Keep</button>
@@ -683,7 +695,10 @@
             document.getElementById('detailPoster').src = item.posterUrl || '';
             document.getElementById('detailTitle').textContent = item.title;
             document.getElementById('detailMeta').textContent = `${item.year || ''} · ⭐ ${item.rating ? item.rating.toFixed(1) : 'N/A'}`;
-            document.getElementById('detailOverview').textContent = item.overview || 'No description available.';
+            const discoverCast = (item.cast && item.cast.length) ? item.cast.join(', ') : '';
+            document.getElementById('detailOverview').innerHTML = 
+                (discoverCast ? `<div style="color:#aaa;font-size:13px;margin-bottom:8px;"><strong>Cast:</strong> ${discoverCast}</div>` : '') +
+                `<div>${item.overview || 'No description available.'}</div>`;
             document.getElementById('detailActions').innerHTML = `
                 <button class="btn btn-green" onclick="discoverAdd(${item.tmdbId}); closeDetail()">+ Add to Library</button>
                 <button class="btn btn-red" onclick="discoverHide(${item.tmdbId}, '${item.title}', '${item.year || ''}', '${item.posterUrl || ''}'); closeDetail()">✗ Hide</button>
