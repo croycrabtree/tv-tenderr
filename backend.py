@@ -146,6 +146,25 @@ async def get_tmdb_cast(client, tmdb_id, media_type="movie"):
         pass
     return []
 
+async def get_tmdb_cast_by_tvdb(client, tvdb_id):
+    """Fetch top 3 actors from TMDb using TVDB ID (for Sonarr shows)."""
+    try:
+        # First find the TMDb ID from TVDB ID
+        r = await client.get(
+            f"https://api.themoviedb.org/3/find/{tvdb_id}",
+            params={"api_key": TMDB_KEY, "external_source": "tvdb_id"},
+            timeout=8
+        )
+        if r.status_code == 200:
+            tv_results = r.json().get("tv_results", [])
+            if tv_results:
+                tmdb_id = tv_results[0].get("id")
+                if tmdb_id:
+                    return await get_tmdb_cast(client, tmdb_id, "tv")
+    except:
+        pass
+    return []
+
 @app.get("/api/movies")
 async def get_movies(skip: int = 0, limit: int = 50):
     """Get movies from Radarr with metadata."""
@@ -161,7 +180,7 @@ async def get_movies(skip: int = 0, limit: int = 50):
         r.raise_for_status()
         radarr_movies = r.json()
     
-    # Fetch cast for all eligible movies in parallel
+    # Filter eligible movies
     eligible = []
     for m in radarr_movies:
         movie_id = str(m["id"])
@@ -170,12 +189,17 @@ async def get_movies(skip: int = 0, limit: int = 50):
             continue
         eligible.append(m)
     
-    import asyncio
-    cast_tasks = [get_tmdb_cast(client, m.get("tmdbId"), "movie") for m in eligible]
-    cast_results = await asyncio.gather(*cast_tasks)
+    random.shuffle(eligible)
+    batch = eligible[skip:skip+limit]
+    
+    # Fetch cast only for the current batch
+    async with httpx.AsyncClient() as client:
+        import asyncio
+        cast_tasks = [get_tmdb_cast(client, m.get("tmdbId"), "movie") for m in batch]
+        cast_results = await asyncio.gather(*cast_tasks)
     
     movies = []
-    for m, cast in zip(eligible, cast_results):
+    for m, cast in zip(batch, cast_results):
         movie_id = str(m["id"])
         
         # Get file size if available
@@ -202,8 +226,7 @@ async def get_movies(skip: int = 0, limit: int = 50):
             "cast": cast,
         })
     
-    random.shuffle(movies)
-    return {"movies": movies[skip:skip+limit], "total": len(movies)}
+    return {"movies": movies, "total": len(eligible)}
 
 @app.post("/api/movies/{movie_id}/keep")
 async def keep_movie(movie_id: int):
@@ -542,7 +565,7 @@ async def get_shows(skip: int = 0, limit: int = 50):
         r.raise_for_status()
         sonarr_shows = r.json()
 
-    # Fetch cast for all eligible shows in parallel
+    # Filter eligible shows
     eligible = []
     for s in sonarr_shows:
         show_id = str(s["id"])
@@ -551,12 +574,17 @@ async def get_shows(skip: int = 0, limit: int = 50):
             continue
         eligible.append(s)
 
-    import asyncio
-    cast_tasks = [get_tmdb_cast(client, s.get("tvdbId"), "tv") for s in eligible]
-    cast_results = await asyncio.gather(*cast_tasks)
+    random.shuffle(eligible)
+    batch = eligible[skip:skip+limit]
+
+    # Fetch cast only for the current batch
+    async with httpx.AsyncClient() as client:
+        import asyncio
+        cast_tasks = [get_tmdb_cast_by_tvdb(client, s.get("tvdbId")) for s in batch]
+        cast_results = await asyncio.gather(*cast_tasks)
 
     shows = []
-    for s, cast in zip(eligible, cast_results):
+    for s, cast in zip(batch, cast_results):
         show_id = str(s["id"])
 
         # Calculate total size and episode count
@@ -593,8 +621,7 @@ async def get_shows(skip: int = 0, limit: int = 50):
             "cast": cast,
         })
 
-    random.shuffle(shows)
-    return {"shows": shows[skip:skip+limit], "total": len(shows)}
+    return {"shows": shows, "total": len(eligible)}
 
 
 @app.post("/api/shows/{show_id}/keep")
