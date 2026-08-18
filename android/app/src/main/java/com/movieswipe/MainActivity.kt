@@ -430,6 +430,7 @@ class MainActivity : AppCompatActivity() {
         val tvSize = cardView.findViewById<TextView>(R.id.tvSize)
         val tvRating = cardView.findViewById<TextView>(R.id.tvRating)
         val tvGenres = cardView.findViewById<TextView>(R.id.tvGenres)
+        val tvCast = cardView.findViewById<TextView>(R.id.tvCast)
         val tvOverview = cardView.findViewById<TextView>(R.id.tvOverview)
         val tvKeepLabel = cardView.findViewById<TextView>(R.id.tvKeepLabel)
         val tvBlockLabel = cardView.findViewById<TextView>(R.id.tvBlockLabel)
@@ -439,6 +440,7 @@ class MainActivity : AppCompatActivity() {
         tvSize.text = "${movie.sizeGB} GB"
         tvRating.text = movie.rating?.let { String.format("%.1f", it) } ?: ""
         tvGenres.text = movie.genres.joinToString(" · ")
+        tvCast.text = movie.cast?.joinToString(", ") ?: ""
         tvOverview.text = movie.overview
 
         // Load poster
@@ -584,6 +586,7 @@ class MainActivity : AppCompatActivity() {
         val tvSize = cardView.findViewById<TextView>(R.id.tvSize)
         val tvRating = cardView.findViewById<TextView>(R.id.tvRating)
         val tvGenres = cardView.findViewById<TextView>(R.id.tvGenres)
+        val tvCast = cardView.findViewById<TextView>(R.id.tvCast)
         val tvOverview = cardView.findViewById<TextView>(R.id.tvOverview)
 
         tvTitle.text = show.title
@@ -592,6 +595,7 @@ class MainActivity : AppCompatActivity() {
         tvSize.text = "${show.sizeGB} GB · ${show.episodeCount} eps · $statusLabel"
         tvRating.text = show.rating?.let { String.format("%.1f", it) } ?: ""
         tvGenres.text = show.genres.joinToString(" · ")
+        tvCast.text = show.cast?.joinToString(", ") ?: ""
         tvOverview.text = show.overview
 
         show.posterUrl?.let { url ->
@@ -792,6 +796,7 @@ class MainActivity : AppCompatActivity() {
         val tvSize = cardView.findViewById<TextView>(R.id.tvSize)
         val tvRating = cardView.findViewById<TextView>(R.id.tvRating)
         val tvGenres = cardView.findViewById<TextView>(R.id.tvGenres)
+        val tvCast = cardView.findViewById<TextView>(R.id.tvCast)
         val tvOverview = cardView.findViewById<TextView>(R.id.tvOverview)
 
         tvTitle.text = item.title
@@ -799,6 +804,7 @@ class MainActivity : AppCompatActivity() {
         tvSize.text = if (discoverType == "movies") "🎬 Movie" else "📺 Show"
         tvRating.text = item.rating?.let { "⭐ ${String.format("%.1f", it)}"} ?: ""
         tvGenres.text = ""
+        tvCast.text = ""  // Cast not available from TMDb discover endpoint
         tvOverview.text = item.overview
 
         item.posterUrl?.let { url ->

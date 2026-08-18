@@ -11,7 +11,8 @@ data class Movie(
     val sizeGB: Double,
     val posterUrl: String?,
     val hasFile: Boolean,
-    val monitored: Boolean
+    val monitored: Boolean,
+    val cast: List<String>?
 )
 
 data class MoviesResponse(
@@ -57,7 +58,8 @@ data class Show(
     val posterUrl: String?,
     val status: String?,
     val monitored: Boolean,
-    val network: String?
+    val network: String?,
+    val cast: List<String>?
 )
 
 data class ShowsResponse(

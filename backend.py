@@ -130,6 +130,22 @@ def get_poster_url(movie):
             return img.get("url")
     return None
 
+async def get_tmdb_cast(client, tmdb_id, media_type="movie"):
+    """Fetch top 3 actors from TMDb."""
+    endpoint = "movie" if media_type == "movie" else "tv"
+    try:
+        r = await client.get(
+            f"https://api.themoviedb.org/3/{endpoint}/{tmdb_id}/credits",
+            params={"api_key": TMDB_KEY},
+            timeout=8
+        )
+        if r.status_code == 200:
+            cast = r.json().get("cast", [])[:3]
+            return [c.get("name", "") for c in cast if c.get("name")]
+    except:
+        pass
+    return []
+
 @app.get("/api/movies")
 async def get_movies(skip: int = 0, limit: int = 50):
     """Get movies from Radarr with metadata."""
@@ -145,14 +161,22 @@ async def get_movies(skip: int = 0, limit: int = 50):
         r.raise_for_status()
         radarr_movies = r.json()
     
-    movies = []
+    # Fetch cast for all eligible movies in parallel
+    eligible = []
     for m in radarr_movies:
         movie_id = str(m["id"])
         decision = decisions.get(movie_id, None)
-        
-        # Skip already-decided movies
         if decision and is_decision_active(decision):
             continue
+        eligible.append(m)
+    
+    import asyncio
+    cast_tasks = [get_tmdb_cast(client, m.get("tmdbId"), "movie") for m in eligible]
+    cast_results = await asyncio.gather(*cast_tasks)
+    
+    movies = []
+    for m, cast in zip(eligible, cast_results):
+        movie_id = str(m["id"])
         
         # Get file size if available
         size_gb = 0
@@ -175,6 +199,7 @@ async def get_movies(skip: int = 0, limit: int = 50):
             "monitored": m.get("monitored", False),
             "qualityProfileId": m.get("qualityProfileId"),
             "status": m.get("status"),
+            "cast": cast,
         })
     
     random.shuffle(movies)
@@ -517,14 +542,22 @@ async def get_shows(skip: int = 0, limit: int = 50):
         r.raise_for_status()
         sonarr_shows = r.json()
 
-    shows = []
+    # Fetch cast for all eligible shows in parallel
+    eligible = []
     for s in sonarr_shows:
         show_id = str(s["id"])
         decision = decisions.get(show_id, None)
-
-        # Skip already-decided shows
         if decision and is_decision_active(decision):
             continue
+        eligible.append(s)
+
+    import asyncio
+    cast_tasks = [get_tmdb_cast(client, s.get("tvdbId"), "tv") for s in eligible]
+    cast_results = await asyncio.gather(*cast_tasks)
+
+    shows = []
+    for s, cast in zip(eligible, cast_results):
+        show_id = str(s["id"])
 
         # Calculate total size and episode count
         total_size = 0
@@ -557,6 +590,7 @@ async def get_shows(skip: int = 0, limit: int = 50):
             "status": s.get("status"),
             "monitored": s.get("monitored", False),
             "network": s.get("network"),
+            "cast": cast,
         })
 
     random.shuffle(shows)
