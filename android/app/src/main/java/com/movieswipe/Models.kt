@@ -12,7 +12,8 @@ data class Movie(
     val posterUrl: String?,
     val hasFile: Boolean,
     val monitored: Boolean,
-    val cast: List<String>?
+    val cast: List<String>?,
+    val watched: Boolean
 )
 
 data class MoviesResponse(
@@ -59,7 +60,8 @@ data class Show(
     val status: String?,
     val monitored: Boolean,
     val network: String?,
-    val cast: List<String>?
+    val cast: List<String>?,
+    val watched: Boolean
 )
 
 data class ShowsResponse(
@@ -74,7 +76,8 @@ data class DiscoverItem(
     val overview: String?,
     val rating: Double?,
     val posterUrl: String?,
-    val backdropUrl: String?
+    val backdropUrl: String?,
+    val cast: List<String>?
 )
 
 data class DiscoverMoviesResponse(

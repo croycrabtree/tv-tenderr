@@ -131,6 +131,15 @@
                 android:ellipsize="end" />
 
             <TextView
+                android:id="@+id/tvWatched"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#4CAF50"
+                android:textSize="11sp"
+                android:layout_marginTop="2dp"
+                android:visibility="gone" />
+
+            <TextView
                 android:id="@+id/tvOverview"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

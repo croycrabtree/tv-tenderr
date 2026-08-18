@@ -441,6 +441,13 @@ class MainActivity : AppCompatActivity() {
         tvRating.text = movie.rating?.let { String.format("%.1f", it) } ?: ""
         tvGenres.text = movie.genres.joinToString(" · ")
         tvCast.text = movie.cast?.joinToString(", ") ?: ""
+        val tvWatchedM = cardView.findViewById<TextView>(R.id.tvWatched)
+        if (movie.watched) {
+            tvWatchedM.visibility = View.VISIBLE
+            tvWatchedM.text = "👁 Watched"
+        } else {
+            tvWatchedM.visibility = View.GONE
+        }
         tvOverview.text = movie.overview
 
         // Load poster
@@ -596,6 +603,13 @@ class MainActivity : AppCompatActivity() {
         tvRating.text = show.rating?.let { String.format("%.1f", it) } ?: ""
         tvGenres.text = show.genres.joinToString(" · ")
         tvCast.text = show.cast?.joinToString(", ") ?: ""
+        val tvWatchedS = cardView.findViewById<TextView>(R.id.tvWatched)
+        if (show.watched) {
+            tvWatchedS.visibility = View.VISIBLE
+            tvWatchedS.text = "👁 Watched"
+        } else {
+            tvWatchedS.visibility = View.GONE
+        }
         tvOverview.text = show.overview
 
         show.posterUrl?.let { url ->
@@ -804,7 +818,7 @@ class MainActivity : AppCompatActivity() {
         tvSize.text = if (discoverType == "movies") "🎬 Movie" else "📺 Show"
         tvRating.text = item.rating?.let { "⭐ ${String.format("%.1f", it)}"} ?: ""
         tvGenres.text = ""
-        tvCast.text = ""  // Cast not available from TMDb discover endpoint
+        tvCast.text = item.cast?.joinToString(", ") ?: ""
         tvOverview.text = item.overview
 
         item.posterUrl?.let { url ->

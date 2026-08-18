@@ -93,6 +93,43 @@ def get_plex_sections():
         print(f"Plex error: {e}")
     return None
 
+def get_plex_watched_titles(section_type="movie"):
+    """Get set of watched titles (lowercase) from Plex."""
+    if not PLEX_TOKEN:
+        return set()
+    try:
+        # Get the section key for this type
+        r = httpx.get(f"{PLEX_URL}/library/sections", params={"X-Plex-Token": PLEX_TOKEN}, timeout=10)
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(r.text)
+        section_key = None
+        for d in root.findall(".//Directory"):
+            if d.get("type") == section_type:
+                section_key = d.get("key")
+                break
+        if not section_key:
+            return set()
+
+        # Get all items with watched status
+        r = httpx.get(
+            f"{PLEX_URL}/library/sections/{section_key}/all",
+            params={"X-Plex-Token": PLEX_TOKEN, "type": "1" if section_type == "movie" else "2"},
+            timeout=60
+        )
+        r.raise_for_status()
+        root = ET.fromstring(r.text)
+        watched = set()
+        for video in root.findall(".//Video"):
+            view_count = int(video.get("viewCount", 0))
+            if view_count > 0:
+                title = video.get("title", "").lower().strip()
+                year = video.get("year", "")
+                watched.add(f"{title}|{year}")
+        return watched
+    except Exception as e:
+        print(f"Plex watched error: {e}")
+        return set()
+
 def get_plex_watch_history(section_key):
     """Get watch history from Plex."""
     if not PLEX_TOKEN or not section_key:
@@ -169,6 +206,7 @@ async def get_tmdb_cast_by_tvdb(client, tvdb_id):
 async def get_movies(skip: int = 0, limit: int = 50):
     """Get movies from Radarr with metadata."""
     decisions = load_decisions()
+    watched = get_plex_watched_titles("movie")
     
     async with httpx.AsyncClient() as client:
         # Get all movies from Radarr
@@ -224,6 +262,7 @@ async def get_movies(skip: int = 0, limit: int = 50):
             "qualityProfileId": m.get("qualityProfileId"),
             "status": m.get("status"),
             "cast": cast,
+            "watched": f"{m['title'].lower().strip()}|{m.get('year', '')}" in watched,
         })
     
     return {"movies": movies, "total": len(eligible)}
@@ -555,6 +594,7 @@ async def update_config(config: dict):
 async def get_shows(skip: int = 0, limit: int = 50):
     """Get TV shows from Sonarr with metadata."""
     decisions = load_show_decisions()
+    watched = get_plex_watched_titles("show")
 
     async with httpx.AsyncClient() as client:
         r = await client.get(
@@ -619,6 +659,7 @@ async def get_shows(skip: int = 0, limit: int = 50):
             "monitored": s.get("monitored", False),
             "network": s.get("network"),
             "cast": cast,
+            "watched": f"{s['title'].lower().strip()}|{s.get('year', '')}" in watched,
         })
 
     return {"shows": shows, "total": len(eligible)}
@@ -1068,6 +1109,7 @@ async def discover_movies(page: int = 1, limit: int = 20, providers: str = "", s
                     "rating": m.get("vote_average"),
                     "posterUrl": poster_url,
                     "backdropUrl": backdrop_url,
+                    "cast": [],
                     "releaseDate": m.get("release_date"),
                 })
 
@@ -1076,7 +1118,15 @@ async def discover_movies(page: int = 1, limit: int = 20, providers: str = "", s
 
             tmdb_page += 1
 
-    return {"movies": movies[:limit], "total": 10000, "page": page}
+        # Fetch cast for the final batch of discover movies
+        final_movies = movies[:limit]
+        import asyncio
+        cast_tasks = [get_tmdb_cast(client, m["tmdbId"], "movie") for m in final_movies]
+        cast_results = await asyncio.gather(*cast_tasks)
+        for m, cast in zip(final_movies, cast_results):
+            m["cast"] = cast
+
+    return {"movies": final_movies, "total": 10000, "page": page}
 
 
 @app.get("/api/discover/shows")
@@ -1126,6 +1176,7 @@ async def discover_shows(page: int = 1, limit: int = 20, providers: str = "", so
                     "rating": s.get("vote_average"),
                     "posterUrl": poster_url,
                     "backdropUrl": backdrop_url,
+                    "cast": [],
                     "firstAirDate": s.get("first_air_date"),
                 })
 
@@ -1134,7 +1185,15 @@ async def discover_shows(page: int = 1, limit: int = 20, providers: str = "", so
 
             tmdb_page += 1
 
-    return {"shows": shows[:limit], "total": 10000, "page": page}
+        # Fetch cast for the final batch of discover shows
+        final_shows = shows[:limit]
+        import asyncio
+        cast_tasks = [get_tmdb_cast(client, s["tmdbId"], "tv") for s in final_shows]
+        cast_results = await asyncio.gather(*cast_tasks)
+        for s, cast in zip(final_shows, cast_results):
+            s["cast"] = cast
+
+    return {"shows": final_shows, "total": 10000, "page": page}
 
 
 @app.post("/api/discover/{tmdb_id}/hide")
