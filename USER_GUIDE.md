@@ -19,7 +19,7 @@ Tap the **mode label** (top center) to cycle between:
 | Gesture | Action | Description |
 |---------|--------|-------------|
 | **→ Right** | Keep | Keeps the item for 6 months |
-| **← Left** | Block | Deletes files, adds to Radarr/Sonarr import list exclusion, and blocklists (10s undo) |
+| **← Left** | Block | Deletes files and adds to Radarr/Sonarr import list exclusion (prevents re-addition) (10s undo) |
 | **↓ Down** | Super Keep | Keeps forever, never expires |
 | **↑ Up** | Skip | Skip for now, decide later |
 
