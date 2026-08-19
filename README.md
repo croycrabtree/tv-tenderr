@@ -40,6 +40,16 @@ python3 backend.py
 ## Screenshots
 
 ### Android App
+![Movies](screenshots/android_movies.png)
+![Shows](screenshots/android_shows.png)
+![Discover](screenshots/android_discover.png)
+![Calendar](screenshots/android_calendar.png)
+
+### Web UI
+![Web Movies](screenshots/web_movies.png)
+![Web Calendar](screenshots/web_calendar.png)
+
+### Features
 - Card-based interface with swipe gestures
 - Movies, Shows, and Discover modes
 - Settings for all service connections
