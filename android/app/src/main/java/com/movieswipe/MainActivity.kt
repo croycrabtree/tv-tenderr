@@ -506,7 +506,7 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 isLoading = false
                 if (error != null) {
-                    binding.tvStats.text = "Error: $error"
+                    binding.tvStats.text = "ERROR"
                     return@runOnUiThread
                 }
                 if (response != null && response.movies.isNotEmpty()) {
@@ -531,7 +531,7 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 isLoading = false
                 if (error != null) {
-                    binding.tvStats.text = "Error: $error"
+                    binding.tvStats.text = "ERROR"
                     return@runOnUiThread
                 }
                 if (response != null && response.shows.isNotEmpty()) {
@@ -964,7 +964,7 @@ class MainActivity : AppCompatActivity() {
                     // Skip if a newer request was made
                     if (thisRequest != discoverRequestId) return@runOnUiThread
                     isLoading = false
-                    if (error != null) { binding.tvStats.text = "Error: $error"; return@runOnUiThread }
+                    if (error != null) { binding.tvStats.text = "ERROR"; return@runOnUiThread }
                     if (response != null && response.movies.isNotEmpty()) {
                         discoverItems.clear()
                         discoverItems.addAll(response.movies)
@@ -983,7 +983,7 @@ class MainActivity : AppCompatActivity() {
                     // Skip if a newer request was made
                     if (thisRequest != discoverRequestId) return@runOnUiThread
                     isLoading = false
-                    if (error != null) { binding.tvStats.text = "Error: $error"; return@runOnUiThread }
+                    if (error != null) { binding.tvStats.text = "ERROR"; return@runOnUiThread }
                     if (response != null && response.shows.isNotEmpty()) {
                         discoverItems.clear()
                         discoverItems.addAll(response.shows)
