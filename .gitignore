@@ -31,3 +31,5 @@ web/logo_full_200.png
 web/logo.svg
 *.jks
 *.keystore
+backend.log
+web/tv_tenderr_preview.html

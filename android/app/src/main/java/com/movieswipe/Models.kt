@@ -134,3 +134,14 @@ data class ProvidersResponse(
     val movie_providers: List<Provider>,
     val tv_providers: List<Provider>
 )
+
+data class UpdateInfo(
+    val version: String?,
+    val tagName: String?,
+    val name: String?,
+    val body: String?,
+    val htmlUrl: String?,
+    val publishedAt: String?,
+    val downloadUrl: String?,
+    val error: String?
+)

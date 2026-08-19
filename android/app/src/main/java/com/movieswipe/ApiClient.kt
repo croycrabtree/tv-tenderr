@@ -438,4 +438,32 @@ class ApiClient(private var baseUrl: String) {
             }
         })
     }
+
+    // ==================== UPDATE CHECK ====================
+
+    fun checkForUpdates(callback: (UpdateInfo?, String?) -> Unit) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/latest-release")
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(null, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (it.isSuccessful) {
+                        val body = it.body?.string()
+                        val info = gson.fromJson(body, UpdateInfo::class.java)
+                        if (info.error != null) {
+                            callback(null, info.error)
+                        } else {
+                            callback(info, null)
+                        }
+                    } else {
+                        callback(null, "HTTP ${it.code}")
+                    }
+                }
+            }
+        })
+    }
 }

@@ -13,6 +13,7 @@ import java.io.IOException
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
+    private lateinit var api: ApiClient
     private val radarrProfiles = mutableListOf<Pair<Int, String>>()
     private val sonarrProfiles = mutableListOf<Pair<Int, String>>()
     private val radarrRoots = mutableListOf<String>()
@@ -25,6 +26,7 @@ class SettingsActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences("movieswipe", MODE_PRIVATE)
         val serverUrl = prefs.getString("server_url", "http://localhost:8899") ?: "http://localhost:8899"
+        api = ApiClient(serverUrl)
 
         // Load saved settings
         binding.etBackendUrl.setText(serverUrl)
@@ -40,6 +42,40 @@ class SettingsActivity : AppCompatActivity() {
         loadQualityProfiles(serverUrl)
 
         binding.btnBack.setOnClickListener { finish() }
+
+        // Version info and update check
+        val versionName = try {
+            packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0"
+        } catch (e: Exception) { "1.0" }
+        binding.tvCurrentVersion.text = "v$versionName"
+
+        binding.btnCheckUpdates.setOnClickListener {
+            binding.tvUpdateStatus.text = "Checking..."
+            binding.tvUpdateStatus.setTextColor(android.graphics.Color.parseColor("#8B949E"))
+            api.checkForUpdates { info, error ->
+                runOnUiThread {
+                    if (error != null) {
+                        binding.tvUpdateStatus.text = "Check failed"
+                        binding.tvUpdateStatus.setTextColor(android.graphics.Color.parseColor("#e74c3c"))
+                    } else if (info != null) {
+                        val latestVersion = info.version ?: "0"
+                        if (isNewerVersion(latestVersion, versionName)) {
+                            binding.tvUpdateStatus.text = "⬆ Update available: v${info.version}"
+                            binding.tvUpdateStatus.setTextColor(android.graphics.Color.parseColor("#2ecc71"))
+                            binding.tvUpdateStatus.setOnClickListener {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(info.htmlUrl ?: "https://github.com/croycrabtree/tv-tenderr/releases/latest"))
+                                startActivity(intent)
+                            }
+                        } else {
+                            binding.tvUpdateStatus.text = "✓ You're on the latest version"
+                            binding.tvUpdateStatus.setTextColor(android.graphics.Color.parseColor("#8B949E"))
+                            binding.tvUpdateStatus.setOnClickListener(null)
+                        }
+                    }
+                }
+            }
+        }
 
         binding.btnSave.setOnClickListener {
             val editor = prefs.edit()
@@ -235,3 +271,16 @@ class SettingsActivity : AppCompatActivity() {
 
 data class QualityProfile(val id: Int, val name: String)
 data class RootFolder(val path: String)
+
+private fun isNewerVersion(latest: String, current: String): Boolean {
+    val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
+    val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
+    val maxLen = maxOf(latestParts.size, currentParts.size)
+    for (i in 0 until maxLen) {
+        val l = latestParts.getOrElse(i) { 0 }
+        val c = currentParts.getOrElse(i) { 0 }
+        if (l > c) return true
+        if (l < c) return false
+    }
+    return false
+}

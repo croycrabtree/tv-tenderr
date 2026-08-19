@@ -63,7 +63,39 @@ class MainActivity : AppCompatActivity() {
             setupButtons()
             setupNavigation()
             loadMovies()
+            checkForUpdates()
         }, 2000)
+    }
+
+    private fun checkForUpdates() {
+        val currentVersion = try {
+            packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0"
+        } catch (e: Exception) { "1.0" }
+
+        api.checkForUpdates { info, _ ->
+            if (info != null) {
+                val latestVersion = info.version ?: "0"
+                val latestParts = latestVersion.split(".").map { it.toIntOrNull() ?: 0 }
+                val currentParts = currentVersion.split(".").map { it.toIntOrNull() ?: 0 }
+                val maxLen = maxOf(latestParts.size, currentParts.size)
+                var isNewer = false
+                for (i in 0 until maxLen) {
+                    val l = latestParts.getOrElse(i) { 0 }
+                    val c = currentParts.getOrElse(i) { 0 }
+                    if (l > c) { isNewer = true; break }
+                    if (l < c) break
+                }
+                if (isNewer) {
+                    runOnUiThread {
+                        android.widget.Toast.makeText(
+                            this,
+                            "⬆ Update available: v${info.version}",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+        }
     }
 
     private fun setupNavigation() {

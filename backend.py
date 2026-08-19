@@ -713,6 +713,33 @@ async def get_config():
         "tmdbKey": TMDB_KEY,
     }
 
+@app.get("/api/latest-release")
+async def get_latest_release():
+    """Check GitHub for the latest release version."""
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                "https://api.github.com/repos/croycrabtree/tv-tenderr/releases/latest",
+                headers={"Accept": "application/vnd.github.v3+json"},
+                timeout=10
+            )
+            if r.status_code == 200:
+                data = r.json()
+                tag = data.get("tag_name", "").lstrip("v")
+                return {
+                    "version": tag,
+                    "tagName": data.get("tag_name"),
+                    "name": data.get("name"),
+                    "body": data.get("body", ""),
+                    "htmlUrl": data.get("html_url"),
+                    "publishedAt": data.get("published_at"),
+                    "downloadUrl": f"https://github.com/croycrabtree/tv-tenderr/releases/latest/download/app-release.apk",
+                }
+            else:
+                return {"error": f"GitHub API returned {r.status_code}"}
+        except Exception as e:
+            return {"error": str(e)}
+
 @app.post("/api/config")
 async def update_config(config: dict):
     """Update configuration."""
