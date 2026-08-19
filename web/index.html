@@ -170,6 +170,7 @@
         <div class="sidebar-item" data-view="shows" title="Shows">📺</div>
         <div class="sidebar-item" data-view="discover" title="Discover">🔍</div>
         <div class="sidebar-item" data-view="calendar" title="Calendar">📅</div>
+        <div class="sidebar-item" data-view="calendar" title="Calendar">📅</div>
         <div class="sidebar-item" data-view="history" title="History">📋</div>
         <div class="sidebar-item" data-view="settings" title="Settings">⚙️</div>
     </div>
@@ -463,6 +464,7 @@
                     case 'movies': await loadLibrary('movies', content, search); break;
                     case 'shows': await loadLibrary('shows', content, search); break;
                     case 'discover': await loadDiscover(content); break;
+                    case 'calendar': await loadCalendar(content); break;
                     case 'history': await loadHistory(content); break;
                     case 'settings': loadSettings(content); break;
                 }
