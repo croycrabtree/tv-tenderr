@@ -197,32 +197,61 @@ class MainActivity : AppCompatActivity() {
         api.getStats { stats, error ->
             runOnUiThread {
                 if (stats != null) {
-                    val msg = buildString {
-                        appendLine("🎬 MOVIES")
-                        appendLine("  Total: ${stats.movies.total}")
-                        appendLine("  Kept: ${stats.movies.kept}")
-                        appendLine("  Super Kept: ${stats.movies.superKept}")
-                        appendLine("  Blocked: ${stats.movies.blocked}")
-                        appendLine("  Skipped: ${stats.movies.skipped}")
-                        appendLine("  Undecided: ${stats.movies.undecided}")
-                        appendLine()
-                        appendLine("📺 SHOWS")
-                        appendLine("  Total: ${stats.shows.total}")
-                        appendLine("  Kept: ${stats.shows.kept}")
-                        appendLine("  Super Kept: ${stats.shows.superKept}")
-                        appendLine("  Blocked: ${stats.shows.blocked}")
-                        appendLine("  Skipped: ${stats.shows.skipped}")
-                        appendLine("  Undecided: ${stats.shows.undecided}")
-                        appendLine()
-                        appendLine("🔍 DISCOVER")
-                        appendLine("  Added: ${stats.discover.added}")
-                        appendLine("  Hidden: ${stats.discover.hidden}")
+                    val dialogView = layoutInflater.inflate(R.layout.dialog_stats, null)
+                    val statsMovies = dialogView.findViewById<LinearLayout>(R.id.statsMovies)
+                    val statsShows = dialogView.findViewById<LinearLayout>(R.id.statsShows)
+                    val statsDiscover = dialogView.findViewById<LinearLayout>(R.id.statsDiscover)
+                    val btnClose = dialogView.findViewById<TextView>(R.id.btnCloseStats)
+
+                    fun addStatRow(container: LinearLayout, label: String, value: Int, color: String = "#ffffff") {
+                        val row = LinearLayout(this)
+                        row.orientation = LinearLayout.HORIZONTAL
+                        row.setPadding(0, 4, 0, 4)
+                        val tvLabel = TextView(this)
+                        tvLabel.text = label
+                        tvLabel.setTextColor(android.graphics.Color.parseColor("#aaaaaa"))
+                        tvLabel.textSize = 14f
+                        tvLabel.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                        val tvValue = TextView(this)
+                        tvValue.text = value.toString()
+                        tvValue.setTextColor(android.graphics.Color.parseColor(color))
+                        tvValue.textSize = 14f
+                        tvValue.typeface = android.graphics.Typeface.DEFAULT_BOLD
+                        row.addView(tvLabel)
+                        row.addView(tvValue)
+                        container.addView(row)
                     }
-                    android.app.AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_Dialog)
-                        .setTitle("📊 Swipe Statistics")
-                        .setMessage(msg)
-                        .setPositiveButton("OK", null)
+
+                    // Movies
+                    addStatRow(statsMovies, "Total", stats.movies.total)
+                    addStatRow(statsMovies, "Kept", stats.movies.kept, "#2ecc71")
+                    addStatRow(statsMovies, "Super Kept", stats.movies.superKept, "#f1c40f")
+                    addStatRow(statsMovies, "Blocked", stats.movies.blocked, "#e74c3c")
+                    addStatRow(statsMovies, "Skipped", stats.movies.skipped, "#aaaaaa")
+                    addStatRow(statsMovies, "Undecided", stats.movies.undecided, "#555555")
+
+                    // Shows
+                    addStatRow(statsShows, "Total", stats.shows.total)
+                    addStatRow(statsShows, "Kept", stats.shows.kept, "#2ecc71")
+                    addStatRow(statsShows, "Super Kept", stats.shows.superKept, "#f1c40f")
+                    addStatRow(statsShows, "Blocked", stats.shows.blocked, "#e74c3c")
+                    addStatRow(statsShows, "Skipped", stats.shows.skipped, "#aaaaaa")
+                    addStatRow(statsShows, "Undecided", stats.shows.undecided, "#555555")
+
+                    // Discover
+                    addStatRow(statsDiscover, "Added", stats.discover.added, "#2ecc71")
+                    addStatRow(statsDiscover, "Hidden", stats.discover.hidden, "#e74c3c")
+
+                    val dialog = android.app.AlertDialog.Builder(this)
+                        .setView(dialogView)
                         .show()
+                    dialog.window?.setLayout(
+                        (resources.displayMetrics.widthPixels * 0.92).toInt(),
+                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                    dialog.window?.decorView?.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+
+                    btnClose.setOnClickListener { dialog.dismiss() }
                 } else {
                     android.widget.Toast.makeText(this, "Failed to load stats: $error", android.widget.Toast.LENGTH_SHORT).show()
                 }
