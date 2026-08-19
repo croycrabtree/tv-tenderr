@@ -531,7 +531,7 @@ class MainActivity : AppCompatActivity() {
         isLoading = true
         binding.tvStats.text = "Loading movies..."
 
-        api.getMovies(skip = currentIndex, limit = 20) { response, error ->
+        api.getMovies(skip = currentIndex, limit = 20, genre = currentGenre, minYear = currentMinYear, maxYear = currentMaxYear, minRating = currentMinRating, search = currentSearchQuery) { response, error ->
             runOnUiThread {
                 isLoading = false
                 if (error != null) {
