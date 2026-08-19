@@ -243,8 +243,8 @@ class MainActivity : AppCompatActivity() {
         val genres = listOf("Any Genre", "Action", "Adventure", "Animation", "Comedy", "Crime",
             "Documentary", "Drama", "Family", "Fantasy", "History", "Horror",
             "Music", "Mystery", "Romance", "Sci-Fi", "Thriller", "War", "Western")
-        val genreAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, genres)
-        genreAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        val genreAdapter = android.widget.ArrayAdapter(this, R.layout.spinner_item, genres)
+        genreAdapter.setDropDownViewResource(R.layout.spinner_item)
         spinnerGenre.adapter = genreAdapter
         val genreIdx = genres.indexOfFirst { it.equals(currentGenre, ignoreCase = true) }
         if (genreIdx > 0) spinnerGenre.setSelection(genreIdx)
@@ -252,8 +252,8 @@ class MainActivity : AppCompatActivity() {
         // Rating dropdown
         val ratings = listOf("Any Rating", "5+", "6+", "7+", "8+", "9+")
         val ratingValues = listOf(0f, 5f, 6f, 7f, 8f, 9f)
-        val ratingAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, ratings)
-        ratingAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        val ratingAdapter = android.widget.ArrayAdapter(this, R.layout.spinner_item, ratings)
+        ratingAdapter.setDropDownViewResource(R.layout.spinner_item)
         spinnerRating.adapter = ratingAdapter
         val ratingIdx = ratingValues.indexOf(currentMinRating)
         if (ratingIdx >= 0) spinnerRating.setSelection(ratingIdx)
