@@ -574,7 +574,7 @@ async def unkeep_movie(movie_id: int):
     """Remove a keep decision - movie goes back to undecided."""
     decisions = load_decisions()
     mid = str(movie_id)
-    if mid in decisions and decisions[mid].get("action") == "keep":
+    if mid in decisions and decisions[mid].get("action") in ("keep", "super_keep"):
         del decisions[mid]
         save_decisions(decisions)
         return {"ok": True, "action": "unkeep"}
@@ -956,6 +956,28 @@ async def skip_show(show_id: int):
     save_show_decisions(decisions)
     return {"ok": True, "action": "skip"}
 
+
+@app.post("/api/shows/{show_id}/unkeep")
+async def unkeep_show(show_id: int):
+    """Remove a keep/super_keep decision - show goes back to undecided."""
+    decisions = load_show_decisions()
+    sid = str(show_id)
+    if sid in decisions and decisions[sid].get("action") in ("keep", "super_keep"):
+        del decisions[sid]
+        save_show_decisions(decisions)
+        return {"ok": True, "action": "unkeep"}
+    raise HTTPException(status_code=404, detail="No keep decision found")
+
+@app.post("/api/shows/{show_id}/unblock")
+async def unblock_show(show_id: int):
+    """Remove a block decision - show goes back to undecided."""
+    decisions = load_show_decisions()
+    sid = str(show_id)
+    if sid in decisions and decisions[sid].get("action") == "block":
+        del decisions[sid]
+        save_show_decisions(decisions)
+        return {"ok": True, "action": "unblock"}
+    raise HTTPException(status_code=404, detail="No block decision found")
 
 @app.post("/api/shows/{show_id}/clean")
 async def clean_show(show_id: int):
