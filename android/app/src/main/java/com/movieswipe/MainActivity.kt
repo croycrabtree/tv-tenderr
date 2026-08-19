@@ -231,103 +231,110 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showFilterDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_filter, null)
+        val genreChips = dialogView.findViewById<LinearLayout>(R.id.genreChips)
+        val ratingChips = dialogView.findViewById<LinearLayout>(R.id.ratingChips)
+        val etMinYear = dialogView.findViewById<EditText>(R.id.etMinYear)
+        val etMaxYear = dialogView.findViewById<EditText>(R.id.etMaxYear)
+        val btnApply = dialogView.findViewById<TextView>(R.id.btnApplyFilters)
+        val btnClear = dialogView.findViewById<TextView>(R.id.btnClearFilters)
+
+        // Pre-fill current values
+        if (currentMinYear > 0) etMinYear.setText(currentMinYear.toString())
+        if (currentMaxYear > 0) etMaxYear.setText(currentMaxYear.toString())
+
+        // Build genre chips
         val genres = listOf("Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary",
             "Drama", "Family", "Fantasy", "History", "Horror", "Music", "Mystery",
-            "Romance", "Science Fiction", "Thriller", "War", "Western")
-        
-        val dialogView = layoutInflater.inflate(android.R.layout.simple_list_item_1, null)
-        
-        // Build filter options
-        val options = arrayOf(
-            "Genre: Any",
-            "Min Year: Any",
-            "Max Year: Any",
-            "Min Rating: Any",
-            "Clear Filters"
-        )
-        
-        android.app.AlertDialog.Builder(this)
-            .setTitle("⚙ Filters")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> { // Genre picker
-                        android.app.AlertDialog.Builder(this)
-                            .setTitle("Select Genre")
-                            .setItems(genres.toTypedArray()) { _, g ->
-                                currentGenre = genres[g]
-                                applyFilters()
-                            }
-                            .setNegativeButton("Any") { _, _ ->
-                                currentGenre = ""
-                                applyFilters()
-                            }
-                            .show()
-                    }
-                    1 -> { // Min year
-                        val input = android.widget.EditText(this)
-                        input.hint = "e.g. 2020"
-                        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
-                        android.app.AlertDialog.Builder(this)
-                            .setTitle("Min Year")
-                            .setView(input)
-                            .setPositiveButton("Apply") { _, _ ->
-                                currentMinYear = input.text.toString().toIntOrNull() ?: 0
-                                applyFilters()
-                            }
-                            .setNegativeButton("Any") { _, _ ->
-                                currentMinYear = 0
-                                applyFilters()
-                            }
-                            .show()
-                    }
-                    2 -> { // Max year
-                        val input = android.widget.EditText(this)
-                        input.hint = "e.g. 2025"
-                        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
-                        android.app.AlertDialog.Builder(this)
-                            .setTitle("Max Year")
-                            .setView(input)
-                            .setPositiveButton("Apply") { _, _ ->
-                                currentMaxYear = input.text.toString().toIntOrNull() ?: 0
-                                applyFilters()
-                            }
-                            .setNegativeButton("Any") { _, _ ->
-                                currentMaxYear = 0
-                                applyFilters()
-                            }
-                            .show()
-                    }
-                    3 -> { // Min rating
-                        val input = android.widget.EditText(this)
-                        input.hint = "e.g. 7.0"
-                        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
-                        android.app.AlertDialog.Builder(this)
-                            .setTitle("Min Rating")
-                            .setView(input)
-                            .setPositiveButton("Apply") { _, _ ->
-                                currentMinRating = input.text.toString().toFloatOrNull() ?: 0f
-                                applyFilters()
-                            }
-                            .setNegativeButton("Any") { _, _ ->
-                                currentMinRating = 0f
-                                applyFilters()
-                            }
-                            .show()
-                    }
-                    4 -> { // Clear all
-                        currentGenre = ""
-                        currentMinYear = 0
-                        currentMaxYear = 0
-                        currentMinRating = 0f
-                        currentSearchQuery = ""
-                        binding.etSearch.text.clear()
-                        applyFilters()
-                    }
+            "Romance", "Sci-Fi", "Thriller", "War", "Western")
+        var selectedGenre = currentGenre
+
+        genreChips.removeAllViews()
+        for (genre in genres) {
+            val chip = TextView(this)
+            chip.text = genre
+            chip.textSize = 12f
+            chip.setPadding(24, 12, 24, 12)
+            chip.setBackgroundResource(R.drawable.chip_bg)
+            chip.setTextColor(android.graphics.Color.WHITE)
+            chip.isSelected = genre.equals(selectedGenre, ignoreCase = true)
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.setMargins(0, 0, 12, 0)
+            chip.layoutParams = params
+            chip.setOnClickListener {
+                selectedGenre = if (chip.isSelected) "" else genre
+                for (i in 0 until genreChips.childCount) {
+                    genreChips.getChildAt(i).isSelected = false
                 }
+                chip.isSelected = selectedGenre.isNotBlank()
             }
+            genreChips.addView(chip)
+        }
+
+        // Build rating chips
+        val ratings = listOf("Any", "5+", "6+", "7+", "8+", "9+")
+        val ratingValues = listOf(0f, 5f, 6f, 7f, 8f, 9f)
+        var selectedRating = currentMinRating
+
+        ratingChips.removeAllViews()
+        for ((idx, label) in ratings.withIndex()) {
+            val chip = TextView(this)
+            chip.text = label
+            chip.textSize = 12f
+            chip.setPadding(24, 12, 24, 12)
+            chip.setBackgroundResource(R.drawable.chip_bg)
+            chip.setTextColor(android.graphics.Color.WHITE)
+            chip.isSelected = ratingValues[idx] == selectedRating
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.setMargins(0, 0, 12, 0)
+            chip.layoutParams = params
+            chip.setOnClickListener {
+                selectedRating = ratingValues[idx]
+                for (i in 0 until ratingChips.childCount) {
+                    ratingChips.getChildAt(i).isSelected = false
+                }
+                chip.isSelected = true
+            }
+            ratingChips.addView(chip)
+        }
+
+        val dialog = android.app.AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_Dialog)
+            .setView(dialogView)
             .show()
+
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.95).toInt(),
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        dialog.window?.decorView?.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+
+        btnApply.setOnClickListener {
+            currentGenre = selectedGenre
+            currentMinYear = etMinYear.text.toString().toIntOrNull() ?: 0
+            currentMaxYear = etMaxYear.text.toString().toIntOrNull() ?: 0
+            currentMinRating = selectedRating
+            applyFilters()
+            dialog.dismiss()
+        }
+
+        btnClear.setOnClickListener {
+            currentGenre = ""
+            currentMinYear = 0
+            currentMaxYear = 0
+            currentMinRating = 0f
+            currentSearchQuery = ""
+            binding.etSearch.text.clear()
+            applyFilters()
+            dialog.dismiss()
+        }
     }
-    
+
     private fun applyFilters() {
         currentIndex = 0
         movies.clear()
