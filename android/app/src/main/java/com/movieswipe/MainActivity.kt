@@ -139,13 +139,10 @@ class MainActivity : AppCompatActivity() {
                 "discover" -> resources.getColor(android.R.color.holo_orange_light, theme)
                 else -> resources.getColor(android.R.color.holo_green_light, theme)
             })
-            binding.tvDiscoverToggle.visibility = if (mode == "discover") View.VISIBLE else View.GONE
-            findViewById<View>(R.id.discoverControls).visibility = if (mode == "discover") View.VISIBLE else View.GONE
-            binding.tvStats.visibility = if (mode == "discover") View.GONE else View.VISIBLE
-            // Reset discover type when entering discover mode
+            binding.tvStats.visibility = if (mode == "discover") View.INVISIBLE else View.VISIBLE
+                        // Reset discover type when entering discover mode
             if (mode == "discover") {
                 discoverType = "movies"
-                binding.tvDiscoverToggle.text = "Movies"
             }
             currentIndex = 0
             discoverPage = 1
@@ -163,39 +160,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Discover type toggle (movies vs shows within discover)
-        binding.tvDiscoverToggle.setOnClickListener {
-            discoverType = if (discoverType == "movies") "shows" else "movies"
-            binding.tvDiscoverToggle.text = if (discoverType == "movies") "Movies" else "Shows"
-            currentIndex = 0
-            discoverPage = 1
-            discoverItems.clear()
-            binding.cardContainer.removeAllViews()
-            isLoading = false  // Allow new request even if previous is loading
-            loadDiscover()
-        }
 
-        // Sort toggle
-        findViewById<TextView>(R.id.tvSortToggle).setOnClickListener {
-            discoverSort = when (discoverSort) {
-                "popularity.desc" -> "release_date.desc"
-                "release_date.desc" -> "vote_average.desc"
-                "vote_average.desc" -> "popularity.desc"
-                else -> "popularity.desc"
-            }
-            val label = when (discoverSort) {
-                "popularity.desc" -> "🔥 Popular"
-                "release_date.desc" -> "🆕 Newest"
-                "vote_average.desc" -> "⭐ Top Rated"
-                else -> "🔥 Popular"
-            }
-            findViewById<TextView>(R.id.tvSortToggle).text = label
-            currentIndex = 0
-            discoverPage = 1
-            discoverItems.clear()
-            binding.cardContainer.removeAllViews()
-            loadDiscover()
-        }
+
     }
 
     private fun showStatsDialog() {
@@ -534,7 +500,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadMovies() {
         if (isLoading) return
         isLoading = true
-        binding.tvStats.text = "Loading movies..."
+        binding.tvStats.text = ""
 
         api.getMovies(skip = currentIndex, limit = 20, genre = currentGenre, minYear = currentMinYear, maxYear = currentMaxYear, minRating = currentMinRating, search = currentSearchQuery) { response, error ->
             runOnUiThread {
@@ -559,7 +525,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadShows() {
         if (isLoading) return
         isLoading = true
-        binding.tvStats.text = "Loading shows..."
+        binding.tvStats.text = ""
 
         api.getShows(skip = currentIndex, limit = 20) { response, error ->
             runOnUiThread {
@@ -615,6 +581,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun createMovieCardView(movie: Movie): CardView {
         val cardView = LayoutInflater.from(this).inflate(R.layout.card_movie, binding.cardContainer, false) as CardView
+
+        // Hide discover controls on movie cards
+        cardView.findViewById<LinearLayout>(R.id.discoverControls)?.visibility = View.GONE
 
         val ivPoster = cardView.findViewById<ImageView>(R.id.ivPoster)
         val tvTitle = cardView.findViewById<TextView>(R.id.tvTitle)
@@ -796,6 +765,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun createShowCardView(show: Show): CardView {
         val cardView = LayoutInflater.from(this).inflate(R.layout.card_movie, binding.cardContainer, false) as CardView
+
+        // Hide discover controls on show cards
+        cardView.findViewById<LinearLayout>(R.id.discoverControls)?.visibility = View.GONE
 
         val ivPoster = cardView.findViewById<ImageView>(R.id.ivPoster)
         val tvTitle = cardView.findViewById<TextView>(R.id.tvTitle)
@@ -980,6 +952,7 @@ class MainActivity : AppCompatActivity() {
         isLoading = true
         discoverRequestId++  // Increment request ID
         val thisRequest = discoverRequestId
+        binding.tvStats.visibility = View.GONE
         binding.tvStats.text = "Loading discover..."
 
         val prefs = getSharedPreferences("movieswipe", MODE_PRIVATE)
@@ -996,6 +969,7 @@ class MainActivity : AppCompatActivity() {
                         discoverItems.clear()
                         discoverItems.addAll(response.movies)
                         currentIndex = 0
+                        binding.tvStats.visibility = View.GONE
                         binding.tvStats.text = "Discover: page $discoverPage"
                         showCurrentCard()
                     } else {
@@ -1014,6 +988,7 @@ class MainActivity : AppCompatActivity() {
                         discoverItems.clear()
                         discoverItems.addAll(response.shows)
                         currentIndex = 0
+                        binding.tvStats.visibility = View.GONE
                         binding.tvStats.text = "Discover: page $discoverPage"
                         showCurrentCard()
                     } else {
@@ -1026,6 +1001,54 @@ class MainActivity : AppCompatActivity() {
 
     private fun createDiscoverCardView(item: DiscoverItem): CardView {
         val cardView = LayoutInflater.from(this).inflate(R.layout.card_movie, binding.cardContainer, false) as CardView
+
+        // Show discover controls on card
+        val discoverControls = cardView.findViewById<LinearLayout>(R.id.discoverControls)
+        discoverControls?.visibility = View.VISIBLE
+        
+        val tvDiscoverToggle = cardView.findViewById<TextView>(R.id.tvDiscoverToggle)
+        val tvSortToggle = cardView.findViewById<TextView>(R.id.tvSortToggle)
+        
+        // Set current labels
+        tvDiscoverToggle.text = if (discoverType == "movies") "🎬 Movies" else "📺 Shows"
+        tvSortToggle.text = when (discoverSort) {
+            "popularity.desc" -> "🔥 Popular"
+            "release_date.desc" -> "🆕 Newest"
+            "vote_average.desc" -> "⭐ Top"
+            else -> "🔥 Popular"
+        }
+        
+        // Discover type toggle
+        tvDiscoverToggle.setOnClickListener {
+            discoverType = if (discoverType == "movies") "shows" else "movies"
+            tvDiscoverToggle.text = if (discoverType == "movies") "🎬 Movies" else "📺 Shows"
+            currentIndex = 0
+            discoverPage = 1
+            discoverItems.clear()
+            binding.cardContainer.removeAllViews()
+            loadDiscover()
+        }
+        
+        // Sort toggle
+        tvSortToggle.setOnClickListener {
+            discoverSort = when (discoverSort) {
+                "popularity.desc" -> "release_date.desc"
+                "release_date.desc" -> "vote_average.desc"
+                "vote_average.desc" -> "popularity.desc"
+                else -> "popularity.desc"
+            }
+            tvSortToggle.text = when (discoverSort) {
+                "popularity.desc" -> "🔥 Popular"
+                "release_date.desc" -> "🆕 Newest"
+                "vote_average.desc" -> "⭐ Top"
+                else -> "🔥 Popular"
+            }
+            currentIndex = 0
+            discoverPage = 1
+            discoverItems.clear()
+            binding.cardContainer.removeAllViews()
+            loadDiscover()
+        }
 
         val ivPoster = cardView.findViewById<ImageView>(R.id.ivPoster)
         val tvTitle = cardView.findViewById<TextView>(R.id.tvTitle)
