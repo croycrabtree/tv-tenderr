@@ -23,14 +23,6 @@ data class MoviesResponse(
     val total: Int
 )
 
-data class StatsResponse(
-    val totalMovies: Int,
-    val kept: Int,
-    val blocked: Int,
-    val skipped: Int,
-    val undecided: Int
-)
-
 data class HistoryItem(
     val movieId: Int,
     val action: String,
@@ -42,6 +34,26 @@ data class HistoryItem(
     val deletedFiles: Int?,
     val freedGB: Double?,
     val type: String?
+)
+
+data class StatsSection(
+    val total: Int,
+    val kept: Int,
+    val superKept: Int,
+    val blocked: Int,
+    val skipped: Int,
+    val undecided: Int
+)
+
+data class DiscoverStats(
+    val added: Int,
+    val hidden: Int
+)
+
+data class StatsResponse(
+    val movies: StatsSection,
+    val shows: StatsSection,
+    val discover: DiscoverStats
 )
 
 data class HistoryResponse(

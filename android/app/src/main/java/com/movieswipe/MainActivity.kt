@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private var isLoading = false
     private var mode = "movies" // "movies", "shows", "discover"
     private var discoverType = "movies" // "movies" or "shows" within discover
+    private var currentSearchQuery = ""
     private var selectedProviders = ""
     private var discoverPage = 1
     private var discoverSort = "popularity.desc"
@@ -84,6 +85,31 @@ class MainActivity : AppCompatActivity() {
             startActivity(android.content.Intent(this, SettingsActivity::class.java))
         }
 
+        // Show search bar for movies/shows, hide for discover
+        binding.searchBar.visibility = View.GONE
+
+        // Search functionality
+        binding.etSearch.setOnEditorActionListener { textView, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
+                val query = textView.text.toString().trim()
+                currentSearchQuery = query
+                currentIndex = 0
+                movies.clear()
+                shows.clear()
+                binding.cardContainer.removeAllViews()
+                when (mode) {
+                    "movies" -> loadMovies()
+                    "shows" -> loadShows()
+                }
+                true
+            } else false
+        }
+
+        // Stats button
+        binding.btnStats.setOnClickListener {
+            showStatsDialog()
+        }
+
         binding.tvMode.setOnClickListener {
             mode = when (mode) {
                 "movies" -> "shows"
@@ -109,10 +135,13 @@ class MainActivity : AppCompatActivity() {
             }
             currentIndex = 0
             discoverPage = 1
+            currentSearchQuery = ""
+            binding.etSearch.text.clear()
             movies.clear()
             shows.clear()
             discoverItems.clear()
             binding.cardContainer.removeAllViews()
+            binding.searchBar.visibility = if (mode == "discover") View.GONE else View.VISIBLE
             when (mode) {
                 "movies" -> loadMovies()
                 "shows" -> loadShows()
@@ -152,6 +181,43 @@ class MainActivity : AppCompatActivity() {
             discoverItems.clear()
             binding.cardContainer.removeAllViews()
             loadDiscover()
+        }
+    }
+
+    private fun showStatsDialog() {
+        api.getStats { stats, error ->
+            runOnUiThread {
+                if (stats != null) {
+                    val msg = buildString {
+                        appendLine("🎬 MOVIES")
+                        appendLine("  Total: ${stats.movies.total}")
+                        appendLine("  Kept: ${stats.movies.kept}")
+                        appendLine("  Super Kept: ${stats.movies.superKept}")
+                        appendLine("  Blocked: ${stats.movies.blocked}")
+                        appendLine("  Skipped: ${stats.movies.skipped}")
+                        appendLine("  Undecided: ${stats.movies.undecided}")
+                        appendLine()
+                        appendLine("📺 SHOWS")
+                        appendLine("  Total: ${stats.shows.total}")
+                        appendLine("  Kept: ${stats.shows.kept}")
+                        appendLine("  Super Kept: ${stats.shows.superKept}")
+                        appendLine("  Blocked: ${stats.shows.blocked}")
+                        appendLine("  Skipped: ${stats.shows.skipped}")
+                        appendLine("  Undecided: ${stats.shows.undecided}")
+                        appendLine()
+                        appendLine("🔍 DISCOVER")
+                        appendLine("  Added: ${stats.discover.added}")
+                        appendLine("  Hidden: ${stats.discover.hidden}")
+                    }
+                    android.app.AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_Dialog)
+                        .setTitle("📊 Swipe Statistics")
+                        .setMessage(msg)
+                        .setPositiveButton("OK", null)
+                        .show()
+                } else {
+                    android.widget.Toast.makeText(this, "Failed to load stats: $error", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 

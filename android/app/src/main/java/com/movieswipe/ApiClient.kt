@@ -35,9 +35,16 @@ class ApiClient(private var baseUrl: String) {
         })
     }
 
-    fun getMovies(skip: Int = 0, limit: Int = 20, callback: (MoviesResponse?, String?) -> Unit) {
+    fun getMovies(skip: Int = 0, limit: Int = 20, genre: String = "", minYear: Int = 0, maxYear: Int = 0, minRating: Float = 0f, search: String = "", callback: (MoviesResponse?, String?) -> Unit) {
         val request = Request.Builder()
-            .url("$baseUrl/api/movies?skip=$skip&limit=$limit")
+            .url(buildString {
+                append("$baseUrl/api/movies?skip=$skip&limit=$limit")
+                if (genre.isNotBlank()) append("&genre=$genre")
+                if (minYear > 0) append("&min_year=$minYear")
+                if (maxYear > 0) append("&max_year=$maxYear")
+                if (minRating > 0f) append("&min_rating=$minRating")
+                if (search.isNotBlank()) append("&search=${java.net.URLEncoder.encode(search, "UTF-8")}")
+            })
             .get()
             .build()
 

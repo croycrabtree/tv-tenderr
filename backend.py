@@ -203,7 +203,7 @@ async def get_tmdb_cast_by_tvdb(client, tvdb_id):
     return []
 
 @app.get("/api/movies")
-async def get_movies(skip: int = 0, limit: int = 50):
+async def get_movies(skip: int = 0, limit: int = 50, genre: str = "", min_year: int = 0, max_year: int = 0, min_rating: float = 0, search: str = ""):
     """Get movies from Radarr with metadata."""
     decisions = load_decisions()
     watched = get_plex_watched_titles("movie")
@@ -227,6 +227,19 @@ async def get_movies(skip: int = 0, limit: int = 50):
             continue
         eligible.append(m)
     
+    # Apply filters
+    if genre:
+        eligible = [m for m in eligible if genre.lower() in [g.lower() if isinstance(g, str) else g.get("name","").lower() for g in m.get("genres", [])]]
+    if min_year:
+        eligible = [m for m in eligible if m.get("year", 0) >= min_year]
+    if max_year:
+        eligible = [m for m in eligible if m.get("year", 0) <= max_year]
+    if min_rating:
+        eligible = [m for m in eligible if (m.get("ratings", {}).get("value", 0) or 0) >= min_rating]
+    if search:
+        search_lower = search.lower()
+        eligible = [m for m in eligible if search_lower in m.get("title", "").lower()]
+
     random.shuffle(eligible)
     batch = eligible[skip:skip+limit]
     
@@ -376,6 +389,143 @@ async def skip_movie(movie_id: int):
     }
     save_decisions(decisions)
     return {"ok": True, "action": "skip"}
+
+@app.get("/api/stats")
+async def get_stats():
+    """Get swipe statistics."""
+    movie_decisions = load_decisions()
+    show_decisions = load_show_decisions()
+    discover = load_hidden()
+    
+    movie_actions = {}
+    for mid, info in movie_decisions.items():
+        action = info.get("action", "unknown")
+        movie_actions[action] = movie_actions.get(action, 0) + 1
+    
+    show_actions = {}
+    for sid, info in show_decisions.items():
+        action = info.get("action", "unknown")
+        show_actions[action] = show_actions.get(action, 0) + 1
+    
+    discover_actions = {}
+    for tid, info in discover.items():
+        action = info.get("action", "unknown")
+        discover_actions[action] = discover_actions.get(action, 0) + 1
+    
+    # Calculate disk space freed from blocked movies
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.get(
+                f"{RADARR_URL}/api/v3/movie",
+                headers={"X-Api-Key": RADARR_KEY},
+                timeout=30
+            )
+            if r.status_code == 200:
+                radarr_movies = r.json()
+                total_movies = len(radarr_movies)
+            else:
+                total_movies = 0
+        except:
+            total_movies = 0
+        
+        try:
+            r = await client.get(
+                f"{SONARR_URL}/api/v3/series",
+                headers={"X-Api-Key": SONARR_KEY},
+                timeout=30
+            )
+            if r.status_code == 200:
+                total_shows = len(r.json())
+            else:
+                total_shows = 0
+        except:
+            total_shows = 0
+    
+    return {
+        "movies": {
+            "total": total_movies,
+            "kept": movie_actions.get("keep", 0),
+            "superKept": movie_actions.get("super_keep", 0),
+            "blocked": movie_actions.get("block", 0),
+            "skipped": movie_actions.get("skip", 0),
+            "undecided": total_movies - sum(movie_actions.values()),
+        },
+        "shows": {
+            "total": total_shows,
+            "kept": show_actions.get("keep", 0),
+            "superKept": show_actions.get("super_keep", 0),
+            "blocked": show_actions.get("block", 0),
+            "skipped": show_actions.get("skip", 0),
+            "undecided": total_shows - sum(show_actions.values()),
+        },
+        "discover": {
+            "added": discover_actions.get("added", 0),
+            "hidden": discover_actions.get("hidden", 0),
+        }
+    }
+
+@app.get("/api/calendar")
+async def get_calendar(days: int = 30):
+    """Get upcoming releases from Radarr and Sonarr."""
+    from datetime import datetime, timedelta
+    
+    start = datetime.now().strftime("%Y-%m-%d")
+    end = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
+    
+    items = []
+    
+    async with httpx.AsyncClient() as client:
+        # Radarr calendar
+        try:
+            r = await client.get(
+                f"{RADARR_URL}/api/v3/calendar",
+                headers={"X-Api-Key": RADARR_KEY},
+                params={"start": start, "end": end},
+                timeout=30
+            )
+            if r.status_code == 200:
+                for m in r.json():
+                    release_date = m.get("digitalRelease") or m.get("physicalRelease") or m.get("inCinemas") or ""
+                    items.append({
+                        "type": "movie",
+                        "title": m.get("title"),
+                        "year": m.get("year"),
+                        "releaseDate": release_date[:10] if release_date else "",
+                        "status": m.get("status"),
+                        "hasFile": m.get("hasFile", False),
+                        "monitored": m.get("monitored", False),
+                        "posterUrl": get_poster_url(m),
+                        "tmdbId": m.get("tmdbId"),
+                    })
+        except:
+            pass
+        
+        # Sonarr calendar
+        try:
+            r = await client.get(
+                f"{SONARR_URL}/api/v3/calendar",
+                headers={"X-Api-Key": SONARR_KEY},
+                params={"start": start, "end": end},
+                timeout=30
+            )
+            if r.status_code == 200:
+                for ep in r.json():
+                    series = ep.get("series", {})
+                    items.append({
+                        "type": "show",
+                        "title": series.get("title"),
+                        "episode": f"S{ep.get('seasonNumber',0):02d}E{ep.get('episodeNumber',0):02d}",
+                        "episodeTitle": ep.get("title"),
+                        "releaseDate": ep.get("airDate", ""),
+                        "hasFile": ep.get("hasFile", False),
+                        "monitored": ep.get("monitored", False),
+                        "posterUrl": next((img.get("remoteUrl") or img.get("url") for img in series.get("images", []) if img.get("coverType") == "poster"), None),
+                    })
+        except:
+            pass
+    
+    items.sort(key=lambda x: x.get("releaseDate", ""))
+    return {"calendar": items, "total": len(items)}
 
 @app.get("/api/history")
 async def get_history():
@@ -593,7 +743,7 @@ async def update_config(config: dict):
 # ==================== SONARR SHOW ENDPOINTS ====================
 
 @app.get("/api/shows")
-async def get_shows(skip: int = 0, limit: int = 50):
+async def get_shows(skip: int = 0, limit: int = 50, genre: str = "", min_year: int = 0, max_year: int = 0, min_rating: float = 0, search: str = ""):
     """Get TV shows from Sonarr with metadata."""
     decisions = load_show_decisions()
     watched = get_plex_watched_titles("show")
@@ -615,6 +765,19 @@ async def get_shows(skip: int = 0, limit: int = 50):
         if decision and is_decision_active(decision):
             continue
         eligible.append(s)
+
+    # Apply filters
+    if genre:
+        eligible = [s for s in eligible if genre.lower() in [g.lower() if isinstance(g, str) else g.get("name","").lower() for g in s.get("genres", [])]]
+    if min_year:
+        eligible = [s for s in eligible if s.get("year", 0) >= min_year]
+    if max_year:
+        eligible = [s for s in eligible if s.get("year", 0) <= max_year]
+    if min_rating:
+        eligible = [s for s in eligible if (s.get("ratings", {}).get("value", 0) or 0) >= min_rating]
+    if search:
+        search_lower = search.lower()
+        eligible = [s for s in eligible if search_lower in s.get("title", "").lower()]
 
     random.shuffle(eligible)
     batch = eligible[skip:skip+limit]
