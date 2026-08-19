@@ -141,10 +141,11 @@ class MainActivity : AppCompatActivity() {
             })
             binding.tvDiscoverToggle.visibility = if (mode == "discover") View.VISIBLE else View.GONE
             findViewById<View>(R.id.discoverControls).visibility = if (mode == "discover") View.VISIBLE else View.GONE
+            binding.tvStats.visibility = if (mode == "discover") View.GONE else View.VISIBLE
             // Reset discover type when entering discover mode
             if (mode == "discover") {
                 discoverType = "movies"
-                binding.tvDiscoverToggle.text = "🎬 Movies"
+                binding.tvDiscoverToggle.text = "Movies"
             }
             currentIndex = 0
             discoverPage = 1
@@ -165,7 +166,7 @@ class MainActivity : AppCompatActivity() {
         // Discover type toggle (movies vs shows within discover)
         binding.tvDiscoverToggle.setOnClickListener {
             discoverType = if (discoverType == "movies") "shows" else "movies"
-            binding.tvDiscoverToggle.text = if (discoverType == "movies") "🎬 Movies" else "📺 Shows"
+            binding.tvDiscoverToggle.text = if (discoverType == "movies") "Movies" else "Shows"
             currentIndex = 0
             discoverPage = 1
             discoverItems.clear()
