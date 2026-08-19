@@ -11,8 +11,8 @@ android {
         applicationId = "com.movieswipe"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10200
-        versionName = "1.2.0"
+        versionCode = 10300
+        versionName = "1.3.0"
     }
 
     signingConfigs {
