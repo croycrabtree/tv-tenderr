@@ -505,7 +505,7 @@ async def get_calendar(days: int = 30):
             r = await client.get(
                 f"{SONARR_URL}/api/v3/calendar",
                 headers={"X-Api-Key": SONARR_KEY},
-                params={"start": start, "end": end},
+                params={"start": start, "end": end, "includeSeries": "true"},
                 timeout=30
             )
             if r.status_code == 200:
@@ -514,12 +514,14 @@ async def get_calendar(days: int = 30):
                     items.append({
                         "type": "show",
                         "title": series.get("title"),
+                        "year": series.get("year"),
                         "episode": f"S{ep.get('seasonNumber',0):02d}E{ep.get('episodeNumber',0):02d}",
                         "episodeTitle": ep.get("title"),
                         "releaseDate": ep.get("airDate", ""),
                         "hasFile": ep.get("hasFile", False),
                         "monitored": ep.get("monitored", False),
                         "posterUrl": next((img.get("remoteUrl") or img.get("url") for img in series.get("images", []) if img.get("coverType") == "poster"), None),
+                        "tmdbId": series.get("tvdbId"),
                     })
         except:
             pass
