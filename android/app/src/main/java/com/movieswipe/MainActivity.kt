@@ -89,6 +89,10 @@ class MainActivity : AppCompatActivity() {
             startActivity(android.content.Intent(this, SettingsActivity::class.java))
         }
 
+        binding.btnCalendar.setOnClickListener {
+            startActivity(android.content.Intent(this, CalendarActivity::class.java))
+        }
+
         // Show search bar for movies/shows, hide for discover
         binding.searchBar.visibility = View.VISIBLE  // Visible for movies/shows
 

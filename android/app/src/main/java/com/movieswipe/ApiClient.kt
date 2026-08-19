@@ -128,6 +128,27 @@ class ApiClient(private var baseUrl: String) {
         return "$baseUrl/api/poster/$movieId"
     }
 
+    fun getCalendar(days: Int = 30, callback: (CalendarResponse?, String?) -> Unit) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/calendar?days=$days")
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(null, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (it.isSuccessful) {
+                        val body = it.body?.string()
+                        callback(gson.fromJson(body, CalendarResponse::class.java), null)
+                    } else {
+                        callback(null, "HTTP ${it.code}")
+                    }
+                }
+            }
+        })
+    }
+
     fun getHistory(callback: (HistoryResponse?, String?) -> Unit) {
         val request = Request.Builder()
             .url("$baseUrl/api/history")

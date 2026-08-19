@@ -56,6 +56,24 @@ data class StatsResponse(
     val discover: DiscoverStats
 )
 
+data class CalendarItem(
+    val type: String,
+    val title: String?,
+    val year: Int?,
+    val episode: String?,
+    val episodeTitle: String?,
+    val releaseDate: String?,
+    val hasFile: Boolean,
+    val monitored: Boolean,
+    val posterUrl: String?,
+    val tmdbId: Int?
+)
+
+data class CalendarResponse(
+    val calendar: List<CalendarItem>,
+    val total: Int
+)
+
 data class HistoryResponse(
     val history: List<HistoryItem>
 )

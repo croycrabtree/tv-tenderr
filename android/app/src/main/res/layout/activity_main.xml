@@ -52,6 +52,15 @@
             android:layout_marginEnd="8dp" />
 
         <ImageButton
+            android:id="@+id/btnCalendar"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_calendar"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Calendar"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
             android:id="@+id/btnHistory"
             android:layout_width="36dp"
             android:layout_height="36dp"
