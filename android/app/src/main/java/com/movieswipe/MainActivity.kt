@@ -450,6 +450,24 @@ class MainActivity : AppCompatActivity() {
         }
         tvOverview.text = movie.overview
 
+        // Trailer and IMDb buttons
+        val linkButtons = cardView.findViewById<LinearLayout>(R.id.linkButtons)
+        val btnTrailer = cardView.findViewById<TextView>(R.id.btnTrailer)
+        val btnImdb = cardView.findViewById<TextView>(R.id.btnImdb)
+        linkButtons.visibility = View.VISIBLE
+        btnTrailer.visibility = if (movie.trailerId != null) View.VISIBLE else View.GONE
+        btnImdb.visibility = if (movie.imdbId != null) View.VISIBLE else View.GONE
+        btnTrailer.setOnClickListener {
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://www.youtube.com/watch?v=${movie.trailerId}"))
+            startActivity(intent)
+        }
+        btnImdb.setOnClickListener {
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://www.imdb.com/title/${movie.imdbId}"))
+            startActivity(intent)
+        }
+
         // Load poster
         movie.posterUrl?.let { url ->
             Glide.with(this)
@@ -611,6 +629,19 @@ class MainActivity : AppCompatActivity() {
             tvWatchedS.visibility = View.GONE
         }
         tvOverview.text = show.overview
+
+        // IMDb button for shows
+        val linkButtonsS = cardView.findViewById<LinearLayout>(R.id.linkButtons)
+        val btnTrailerS = cardView.findViewById<TextView>(R.id.btnTrailer)
+        val btnImdbS = cardView.findViewById<TextView>(R.id.btnImdb)
+        linkButtonsS.visibility = View.VISIBLE
+        btnTrailerS.visibility = View.GONE  // Sonarr doesn't have trailer IDs
+        btnImdbS.visibility = if (show.imdbId != null) View.VISIBLE else View.GONE
+        btnImdbS.setOnClickListener {
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://www.imdb.com/title/${show.imdbId}"))
+            startActivity(intent)
+        }
 
         show.posterUrl?.let { url ->
             Glide.with(this)
@@ -820,6 +851,20 @@ class MainActivity : AppCompatActivity() {
         tvGenres.text = ""
         tvCast.text = item.cast?.joinToString(", ") ?: ""
         tvOverview.text = item.overview
+
+        // TMDb link for discover items
+        val linkButtonsD = cardView.findViewById<LinearLayout>(R.id.linkButtons)
+        val btnTrailerD = cardView.findViewById<TextView>(R.id.btnTrailer)
+        val btnImdbD = cardView.findViewById<TextView>(R.id.btnImdb)
+        linkButtonsD.visibility = View.VISIBLE
+        btnTrailerD.visibility = View.GONE
+        btnImdbD.text = "🔗 TMDb"
+        btnImdbD.setOnClickListener {
+            val mediaType = if (discoverType == "movies") "movie" else "tv"
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://www.themoviedb.org/${mediaType}/${item.tmdbId}"))
+            startActivity(intent)
+        }
 
         item.posterUrl?.let { url ->
             Glide.with(this).load(url).centerCrop().into(ivPoster)

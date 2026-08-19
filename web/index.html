@@ -335,6 +335,10 @@
                             <div class="single-card-meta">${year} ${size ? '· ' + size : ''} ${status ? '· ' + status : ''} ${eps ? '· ' + eps : ''} ${rating ? '· ' + rating : ''}</div>
                             ${cast ? `<div class="single-card-cast" style="font-size:11px;color:#aaa;margin-top:2px;">${cast}</div>` : ''}
                             ${watched ? `<div class="single-card-watched" style="font-size:11px;color:#4CAF50;margin-top:2px;">${watched}</div>` : ''}
+                            <div style="margin-top:4px;display:flex;gap:6px;">
+                                ${item.trailerId ? `<a href="https://www.youtube.com/watch?v=${item.trailerId}" target="_blank" style="font-size:11px;color:#FF6B35;text-decoration:none;background:rgba(255,255,255,0.08);padding:3px 8px;border-radius:4px;">▶ Trailer</a>` : ''}
+                                ${item.imdbId ? `<a href="https://www.imdb.com/title/${item.imdbId}" target="_blank" style="font-size:11px;color:#F5C518;text-decoration:none;background:rgba(255,255,255,0.08);padding:3px 8px;border-radius:4px;">🎬 IMDb</a>` : ''}
+                            </div>
                             <div class="single-card-overview">${overview}</div>
                         </div>
                     </div>
@@ -495,6 +499,10 @@
                             </div>
                             ${item.cast && item.cast.length ? `<div style="font-size:10px;color:#aaa;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.cast.join(', ')}</div>` : ''}
                             ${item.watched ? `<div style="font-size:10px;color:#4CAF50;margin-top:1px;">👁 Watched</div>` : ''}
+                            <div style="margin-top:2px;display:flex;gap:4px;">
+                                ${item.trailerId ? `<a href="https://www.youtube.com/watch?v=${item.trailerId}" target="_blank" style="font-size:9px;color:#FF6B35;text-decoration:none;">▶ Trailer</a>` : ''}
+                                ${item.imdbId ? `<a href="https://www.imdb.com/title/${item.imdbId}" target="_blank" style="font-size:9px;color:#F5C518;text-decoration:none;">🎬 IMDb</a>` : ''}
+                            </div>
                         </div>
                     </div>
                 `).join('')}</div>`;
@@ -528,6 +536,7 @@
                                 <span class="card-rating">⭐ ${item.rating ? item.rating.toFixed(1) : 'N/A'}</span>
                             </div>
                             ${item.cast && item.cast.length ? `<div style="font-size:10px;color:#aaa;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.cast.join(', ')}</div>` : ''}
+                            <div style="margin-top:2px;"><a href="https://www.themoviedb.org/${discoverType === 'movies' ? 'movie' : 'tv'}/${item.tmdbId}" target="_blank" style="font-size:9px;color:#01d277;text-decoration:none;">🔗 TMDb</a></div>
                         </div>
                     </div>
                 `).join('')}</div>`;

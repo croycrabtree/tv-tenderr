@@ -263,6 +263,8 @@ async def get_movies(skip: int = 0, limit: int = 50):
             "status": m.get("status"),
             "cast": cast,
             "watched": f"{m['title'].lower().strip()}|{m.get('year', '')}" in watched,
+            "imdbId": m.get("imdbId"),
+            "trailerId": m.get("youTubeTrailerId"),
         })
     
     return {"movies": movies, "total": len(eligible)}
@@ -660,6 +662,7 @@ async def get_shows(skip: int = 0, limit: int = 50):
             "network": s.get("network"),
             "cast": cast,
             "watched": f"{s['title'].lower().strip()}|{s.get('year', '')}" in watched,
+            "imdbId": s.get("imdbId"),
         })
 
     return {"shows": shows, "total": len(eligible)}

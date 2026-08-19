@@ -148,6 +148,42 @@
                 android:layout_marginTop="6dp"
                 android:maxLines="7"
                 android:ellipsize="end" />
+
+            <LinearLayout
+                android:id="@+id/linkButtons"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/btnTrailer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▶ Trailer"
+                    android:textColor="#FF6B35"
+                    android:textSize="11sp"
+                    android:background="#22FFFFFF"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:layout_marginEnd="6dp" />
+
+                <TextView
+                    android:id="@+id/btnImdb"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎬 IMDb"
+                    android:textColor="#F5C518"
+                    android:textSize="11sp"
+                    android:background="#22FFFFFF"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp" />
+            </LinearLayout>
         </LinearLayout>
     </FrameLayout>
 

@@ -13,7 +13,9 @@ data class Movie(
     val hasFile: Boolean,
     val monitored: Boolean,
     val cast: List<String>?,
-    val watched: Boolean
+    val watched: Boolean,
+    val imdbId: String?,
+    val trailerId: String?
 )
 
 data class MoviesResponse(
@@ -61,7 +63,9 @@ data class Show(
     val monitored: Boolean,
     val network: String?,
     val cast: List<String>?,
-    val watched: Boolean
+    val watched: Boolean,
+    val imdbId: String?,
+    val trailerId: String?
 )
 
 data class ShowsResponse(
