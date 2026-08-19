@@ -37,6 +37,10 @@ class MainActivity : AppCompatActivity() {
     private var mode = "movies" // "movies", "shows", "discover"
     private var discoverType = "movies" // "movies" or "shows" within discover
     private var currentSearchQuery = ""
+    private var currentGenre = ""
+    private var currentMinYear = 0
+    private var currentMaxYear = 0
+    private var currentMinRating = 0f
     private var selectedProviders = ""
     private var discoverPage = 1
     private var discoverSort = "popularity.desc"
@@ -86,7 +90,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Show search bar for movies/shows, hide for discover
-        binding.searchBar.visibility = View.GONE
+        binding.searchBar.visibility = View.VISIBLE  // Visible for movies/shows
 
         // Search functionality
         binding.etSearch.setOnEditorActionListener { textView, actionId, _ ->
@@ -103,6 +107,11 @@ class MainActivity : AppCompatActivity() {
                 }
                 true
             } else false
+        }
+
+        // Filter button
+        binding.btnFilter.setOnClickListener {
+            showFilterDialog()
         }
 
         // Stats button
@@ -219,6 +228,122 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun showFilterDialog() {
+        val genres = listOf("Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary",
+            "Drama", "Family", "Fantasy", "History", "Horror", "Music", "Mystery",
+            "Romance", "Science Fiction", "Thriller", "War", "Western")
+        
+        val dialogView = layoutInflater.inflate(android.R.layout.simple_list_item_1, null)
+        
+        // Build filter options
+        val options = arrayOf(
+            "Genre: Any",
+            "Min Year: Any",
+            "Max Year: Any",
+            "Min Rating: Any",
+            "Clear Filters"
+        )
+        
+        android.app.AlertDialog.Builder(this)
+            .setTitle("⚙ Filters")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> { // Genre picker
+                        android.app.AlertDialog.Builder(this)
+                            .setTitle("Select Genre")
+                            .setItems(genres.toTypedArray()) { _, g ->
+                                currentGenre = genres[g]
+                                applyFilters()
+                            }
+                            .setNegativeButton("Any") { _, _ ->
+                                currentGenre = ""
+                                applyFilters()
+                            }
+                            .show()
+                    }
+                    1 -> { // Min year
+                        val input = android.widget.EditText(this)
+                        input.hint = "e.g. 2020"
+                        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                        android.app.AlertDialog.Builder(this)
+                            .setTitle("Min Year")
+                            .setView(input)
+                            .setPositiveButton("Apply") { _, _ ->
+                                currentMinYear = input.text.toString().toIntOrNull() ?: 0
+                                applyFilters()
+                            }
+                            .setNegativeButton("Any") { _, _ ->
+                                currentMinYear = 0
+                                applyFilters()
+                            }
+                            .show()
+                    }
+                    2 -> { // Max year
+                        val input = android.widget.EditText(this)
+                        input.hint = "e.g. 2025"
+                        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                        android.app.AlertDialog.Builder(this)
+                            .setTitle("Max Year")
+                            .setView(input)
+                            .setPositiveButton("Apply") { _, _ ->
+                                currentMaxYear = input.text.toString().toIntOrNull() ?: 0
+                                applyFilters()
+                            }
+                            .setNegativeButton("Any") { _, _ ->
+                                currentMaxYear = 0
+                                applyFilters()
+                            }
+                            .show()
+                    }
+                    3 -> { // Min rating
+                        val input = android.widget.EditText(this)
+                        input.hint = "e.g. 7.0"
+                        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+                        android.app.AlertDialog.Builder(this)
+                            .setTitle("Min Rating")
+                            .setView(input)
+                            .setPositiveButton("Apply") { _, _ ->
+                                currentMinRating = input.text.toString().toFloatOrNull() ?: 0f
+                                applyFilters()
+                            }
+                            .setNegativeButton("Any") { _, _ ->
+                                currentMinRating = 0f
+                                applyFilters()
+                            }
+                            .show()
+                    }
+                    4 -> { // Clear all
+                        currentGenre = ""
+                        currentMinYear = 0
+                        currentMaxYear = 0
+                        currentMinRating = 0f
+                        currentSearchQuery = ""
+                        binding.etSearch.text.clear()
+                        applyFilters()
+                    }
+                }
+            }
+            .show()
+    }
+    
+    private fun applyFilters() {
+        currentIndex = 0
+        movies.clear()
+        shows.clear()
+        binding.cardContainer.removeAllViews()
+        when (mode) {
+            "movies" -> loadMovies()
+            "shows" -> loadShows()
+        }
+        val activeFilters = mutableListOf<String>()
+        if (currentGenre.isNotBlank()) activeFilters.add(currentGenre)
+        if (currentMinYear > 0) activeFilters.add("≥$currentMinYear")
+        if (currentMaxYear > 0) activeFilters.add("≤$currentMaxYear")
+        if (currentMinRating > 0f) activeFilters.add("⭐≥$currentMinRating")
+        if (currentSearchQuery.isNotBlank()) activeFilters.add("[" + currentSearchQuery + "]")
+        binding.btnFilter.text = if (activeFilters.isEmpty()) "⚙ Filter" else "⚙ ${activeFilters.joinToString(" ")}"
     }
 
     private fun setupButtons() {
