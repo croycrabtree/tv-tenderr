@@ -13,29 +13,24 @@
         android:textColor="#fff"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="20dp" />
 
-    <!-- Genre -->
+    <!-- Genre dropdown -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Genre"
         android:textColor="#aaa"
         android:textSize="12sp"
-        android:layout_marginBottom="6dp" />
+        android:layout_marginBottom="4dp" />
 
-    <HorizontalScrollView
+    <Spinner
+        android:id="@+id/spinnerGenre"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:layout_marginBottom="16dp">
-
-        <LinearLayout
-            android:id="@+id/genreChips"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal" />
-    </HorizontalScrollView>
+        android:layout_height="44dp"
+        android:background="@drawable/spinner_bg"
+        android:layout_marginBottom="16dp"
+        android:popupBackground="#2A2A3E" />
 
     <!-- Year range -->
     <TextView
@@ -44,7 +39,7 @@
         android:text="Year Range"
         android:textColor="#aaa"
         android:textSize="12sp"
-        android:layout_marginBottom="6dp" />
+        android:layout_marginBottom="4dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -56,9 +51,9 @@
         <EditText
             android:id="@+id/etMinYear"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:hint="Min year"
+            android:hint="Min"
             android:textColorHint="#555"
             android:textColor="#fff"
             android:textSize="14sp"
@@ -71,16 +66,16 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="  —  "
+            android:text="  to  "
             android:textColor="#555"
             android:textSize="14sp" />
 
         <EditText
             android:id="@+id/etMaxYear"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:hint="Max year"
+            android:hint="Max"
             android:textColorHint="#555"
             android:textColor="#fff"
             android:textSize="14sp"
@@ -91,21 +86,22 @@
             android:singleLine="true" />
     </LinearLayout>
 
-    <!-- Min Rating -->
+    <!-- Min Rating dropdown -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Minimum Rating"
         android:textColor="#aaa"
         android:textSize="12sp"
-        android:layout_marginBottom="6dp" />
+        android:layout_marginBottom="4dp" />
 
-    <LinearLayout
-        android:id="@+id/ratingChips"
+    <Spinner
+        android:id="@+id/spinnerRating"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="20dp" />
+        android:layout_height="44dp"
+        android:background="@drawable/spinner_bg"
+        android:layout_marginBottom="24dp"
+        android:popupBackground="#2A2A3E" />
 
     <!-- Buttons -->
     <LinearLayout
@@ -118,7 +114,7 @@
             android:id="@+id/btnClearFilters"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
-            android:text="Clear All"
+            android:text="Clear"
             android:textColor="#aaa"
             android:textSize="14sp"
             android:background="?attr/selectableItemBackground"
@@ -135,9 +131,9 @@
             android:textColor="#fff"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:background="#FF6B35"
-            android:paddingStart="24dp"
-            android:paddingEnd="24dp"
+            android:background="@drawable/btn_orange"
+            android:paddingStart="28dp"
+            android:paddingEnd="28dp"
             android:gravity="center" />
     </LinearLayout>
 </LinearLayout>

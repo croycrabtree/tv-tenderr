@@ -19,4 +19,8 @@
     
     <!-- Launcher icon background -->
     <color name="ic_launcher_bg">#FFFF6B35</color>
+    <!-- Chip colors -->
+    <color name="chip_bg_color">#2A2A3E</color>
+    <color name="chip_stroke_color">#3A3A4E</color>
+    <color name="chip_checked_bg_color">#FF6B35</color>
 </resources>

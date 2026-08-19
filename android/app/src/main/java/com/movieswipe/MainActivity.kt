@@ -232,93 +232,53 @@ class MainActivity : AppCompatActivity() {
 
     private fun showFilterDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_filter, null)
-        val genreChips = dialogView.findViewById<LinearLayout>(R.id.genreChips)
-        val ratingChips = dialogView.findViewById<LinearLayout>(R.id.ratingChips)
+        val spinnerGenre = dialogView.findViewById<android.widget.Spinner>(R.id.spinnerGenre)
+        val spinnerRating = dialogView.findViewById<android.widget.Spinner>(R.id.spinnerRating)
         val etMinYear = dialogView.findViewById<EditText>(R.id.etMinYear)
         val etMaxYear = dialogView.findViewById<EditText>(R.id.etMaxYear)
         val btnApply = dialogView.findViewById<TextView>(R.id.btnApplyFilters)
         val btnClear = dialogView.findViewById<TextView>(R.id.btnClearFilters)
 
-        // Pre-fill current values
+        // Genre dropdown
+        val genres = listOf("Any Genre", "Action", "Adventure", "Animation", "Comedy", "Crime",
+            "Documentary", "Drama", "Family", "Fantasy", "History", "Horror",
+            "Music", "Mystery", "Romance", "Sci-Fi", "Thriller", "War", "Western")
+        val genreAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, genres)
+        genreAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerGenre.adapter = genreAdapter
+        val genreIdx = genres.indexOfFirst { it.equals(currentGenre, ignoreCase = true) }
+        if (genreIdx > 0) spinnerGenre.setSelection(genreIdx)
+
+        // Rating dropdown
+        val ratings = listOf("Any Rating", "5+", "6+", "7+", "8+", "9+")
+        val ratingValues = listOf(0f, 5f, 6f, 7f, 8f, 9f)
+        val ratingAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, ratings)
+        ratingAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerRating.adapter = ratingAdapter
+        val ratingIdx = ratingValues.indexOf(currentMinRating)
+        if (ratingIdx >= 0) spinnerRating.setSelection(ratingIdx)
+
+        // Pre-fill year values
         if (currentMinYear > 0) etMinYear.setText(currentMinYear.toString())
         if (currentMaxYear > 0) etMaxYear.setText(currentMaxYear.toString())
 
-        // Build genre chips
-        val genres = listOf("Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary",
-            "Drama", "Family", "Fantasy", "History", "Horror", "Music", "Mystery",
-            "Romance", "Sci-Fi", "Thriller", "War", "Western")
-        var selectedGenre = currentGenre
-
-        genreChips.removeAllViews()
-        for (genre in genres) {
-            val chip = TextView(this)
-            chip.text = genre
-            chip.textSize = 12f
-            chip.setPadding(24, 12, 24, 12)
-            chip.setBackgroundResource(R.drawable.chip_bg)
-            chip.setTextColor(android.graphics.Color.WHITE)
-            chip.isSelected = genre.equals(selectedGenre, ignoreCase = true)
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.setMargins(0, 0, 12, 0)
-            chip.layoutParams = params
-            chip.setOnClickListener {
-                selectedGenre = if (chip.isSelected) "" else genre
-                for (i in 0 until genreChips.childCount) {
-                    genreChips.getChildAt(i).isSelected = false
-                }
-                chip.isSelected = selectedGenre.isNotBlank()
-            }
-            genreChips.addView(chip)
-        }
-
-        // Build rating chips
-        val ratings = listOf("Any", "5+", "6+", "7+", "8+", "9+")
-        val ratingValues = listOf(0f, 5f, 6f, 7f, 8f, 9f)
-        var selectedRating = currentMinRating
-
-        ratingChips.removeAllViews()
-        for ((idx, label) in ratings.withIndex()) {
-            val chip = TextView(this)
-            chip.text = label
-            chip.textSize = 12f
-            chip.setPadding(24, 12, 24, 12)
-            chip.setBackgroundResource(R.drawable.chip_bg)
-            chip.setTextColor(android.graphics.Color.WHITE)
-            chip.isSelected = ratingValues[idx] == selectedRating
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.setMargins(0, 0, 12, 0)
-            chip.layoutParams = params
-            chip.setOnClickListener {
-                selectedRating = ratingValues[idx]
-                for (i in 0 until ratingChips.childCount) {
-                    ratingChips.getChildAt(i).isSelected = false
-                }
-                chip.isSelected = true
-            }
-            ratingChips.addView(chip)
-        }
-
-        val dialog = android.app.AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_Dialog)
+        val dialog = android.app.AlertDialog.Builder(this)
             .setView(dialogView)
             .show()
 
         dialog.window?.setLayout(
-            (resources.displayMetrics.widthPixels * 0.95).toInt(),
+            (resources.displayMetrics.widthPixels * 0.92).toInt(),
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT
         )
         dialog.window?.decorView?.setBackgroundColor(android.graphics.Color.TRANSPARENT)
 
         btnApply.setOnClickListener {
-            currentGenre = selectedGenre
+            val selGenre = spinnerGenre.selectedItemPosition
+            currentGenre = if (selGenre == 0) "" else genres[selGenre]
+            val selRating = spinnerRating.selectedItemPosition
+            currentMinRating = ratingValues[selRating]
             currentMinYear = etMinYear.text.toString().toIntOrNull() ?: 0
             currentMaxYear = etMaxYear.text.toString().toIntOrNull() ?: 0
-            currentMinRating = selectedRating
             applyFilters()
             dialog.dismiss()
         }
