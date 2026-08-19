@@ -11,7 +11,7 @@ android {
         applicationId = "com.movieswipe"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
+        versionCode = 10200
         versionName = "1.2.0"
     }
 
