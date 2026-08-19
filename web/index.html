@@ -789,6 +789,76 @@
 
         // Init
         loadView();
-    </script>
+            async function showStats() {
+            const res = await fetch(API + '/api/stats');
+            const stats = await res.json();
+            alert(`📊 Swipe Statistics\n\n` +
+                `🎬 MOVIES\n` +
+                `  Total: ${stats.movies.total}\n` +
+                `  Kept: ${stats.movies.kept}\n` +
+                `  Super Kept: ${stats.movies.superKept}\n` +
+                `  Blocked: ${stats.movies.blocked}\n` +
+                `  Skipped: ${stats.movies.skipped}\n` +
+                `  Undecided: ${stats.movies.undecided}\n\n` +
+                `📺 SHOWS\n` +
+                `  Total: ${stats.shows.total}\n` +
+                `  Kept: ${stats.shows.kept}\n` +
+                `  Super Kept: ${stats.shows.superKept}\n` +
+                `  Blocked: ${stats.shows.blocked}\n` +
+                `  Skipped: ${stats.shows.skipped}\n` +
+                `  Undecided: ${stats.shows.undecided}\n\n` +
+                `🔍 DISCOVER\n` +
+                `  Added: ${stats.discover.added}\n` +
+                `  Hidden: ${stats.discover.hidden}`);
+        }
+
+        let currentFilters = {};
+        function showFilter() {
+            const genres = ["Action","Adventure","Animation","Comedy","Crime","Documentary","Drama","Family","Fantasy","History","Horror","Music","Mystery","Romance","Sci-Fi","Thriller","War","Western"];
+            const ratings = [0, 5, 6, 7, 8, 9];
+            
+            let html = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;" onclick="this.remove()">';
+            html += '<div style="background:#1E1E2E;border-radius:12px;padding:20px;width:90%;max-width:500px;" onclick="event.stopPropagation()">';
+            html += '<h3 style="color:#fff;margin:0 0 16px 0;">Filters</h3>';
+            
+            // Genre chips
+            html += '<div style="color:#aaa;font-size:12px;margin-bottom:6px;">Genre</div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">';
+            genres.forEach(g => {
+                const sel = currentFilters.genre === g;
+                html += `<span onclick="currentFilters.genre=this.dataset.sel?'':'${g}';this.style.background=this.dataset.sel?'#2A2A3E':'#FF6B35';this.dataset.sel=this.dataset.sel?'':'1'" data-sel="${sel?1:''}" style="background:${sel?'#FF6B35':'#2A2A3E'};color:#fff;padding:6px 14px;border-radius:16px;font-size:12px;cursor:pointer;border:1px solid ${sel?'#FF6B35':'#3A3A4E'}">${g}</span>`;
+            });
+            html += '</div>';
+            
+            // Year range
+            html += '<div style="color:#aaa;font-size:12px;margin-bottom:6px;">Year Range</div>';
+            html += '<div style="display:flex;gap:8px;margin-bottom:16px;">';
+            html += `<input id="fMinYear" type="number" placeholder="Min year" value="${currentFilters.minYear||''}" style="flex:1;background:#2A2A3E;border:1px solid #3A3A4E;color:#fff;padding:8px 12px;border-radius:8px;font-size:14px;">`;
+            html += '<span style="color:#555;line-height:36px;">—</span>';
+            html += `<input id="fMaxYear" type="number" placeholder="Max year" value="${currentFilters.maxYear||''}" style="flex:1;background:#2A2A3E;border:1px solid #3A3A4E;color:#fff;padding:8px 12px;border-radius:8px;font-size:14px;">`;
+            html += '</div>';
+            
+            // Rating
+            html += '<div style="color:#aaa;font-size:12px;margin-bottom:6px;">Minimum Rating</div>';
+            html += '<div style="display:flex;gap:6px;margin-bottom:20px;">';
+            ratings.forEach(r => {
+                const sel = (currentFilters.minRating||0) === r;
+                html += `<span onclick="currentFilters.minRating=${r};this.parentElement.querySelectorAll('span').forEach(s=>{s.style.background='#2A2A3E';s.style.borderColor='#3A3A4E'});this.style.background='#FF6B35';this.style.borderColor='#FF6B35'" style="background:${sel?'#FF6B35':'#2A2A3E'};color:#fff;padding:6px 14px;border-radius:16px;font-size:12px;cursor:pointer;border:1px solid ${sel?'#FF6B35':'#3A3A4E'}">${r===0?'Any':r+'+'}</span>`;
+            });
+            html += '</div>';
+            
+            // Buttons
+            html += '<div style="display:flex;justify-content:flex-end;gap:8px;">';
+            html += '<button onclick="currentFilters={};this.closest('div[style*=fixed]').remove();loadContent()" style="background:none;border:none;color:#aaa;padding:8px 16px;cursor:pointer;">Clear All</button>';
+            html += '<button onclick="currentFilters.genre=this.closest('div[style*=fixed]').querySelector('span[data-sel=1]')?.textContent||'';currentFilters.minYear=document.getElementById('fMinYear').value;currentFilters.maxYear=document.getElementById('fMaxYear').value;this.closest('div[style*=fixed]').remove();loadContent()" style="background:#FF6B35;border:none;color:#fff;padding:8px 24px;border-radius:8px;font-weight:bold;cursor:pointer;">Apply</button>';
+            html += '</div></div></div>';
+            
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+
+        // Update loadMovies to use filters
+        const origLoadMovies = window.loadMovies;
+        
+</script>
 </body>
 </html>
