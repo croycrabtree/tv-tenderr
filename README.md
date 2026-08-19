@@ -8,13 +8,19 @@ A Tinder-style app for managing your Plex media library. Swipe through movies an
 ## Features
 
 - **Swipe gestures** — right to keep, left to block (deletes files, prevents re-addition), down for super keep
+- **Cast display** — top 3 actors from TMDb on every movie, show, and discover card
+- **Plex watched status** — see which movies/shows you've already watched in Plex
+- **Trailer & IMDb links** — tap to watch trailers on YouTube or view on IMDb
+- **Search & filter** — search by title, filter by genre, year range, and minimum rating
+- **Swipe statistics** — see totals for kept, blocked, super kept, skipped across movies, shows, and discover
+- **Calendar view** — upcoming releases from Radarr and Sonarr with monitoring/downloaded status
 - **Plex integration** — refresh libraries from your phone
 - **Radarr & Sonarr** — manage movies and TV shows
-- **Discover** — find new content from all streaming services via TMDb
+- **Discover** — find new content from all streaming services via TMDb with TMDb links
 - **Quality settings** — configure quality profiles and root folders
 - **Undo protection** — 10-second window before destructive actions
 - **History** — track all decisions with undo capability
-- **Web GUI** — desktop interface with card and grid views
+- **Web GUI** — desktop interface with card and grid views, all features mirrored
 
 ## Quick Start
 

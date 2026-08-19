@@ -23,6 +23,34 @@ Tap the **mode label** (top center) to cycle between:
 | **↓ Down** | Super Keep | Keeps forever, never expires |
 | **↑ Up** | Skip | Skip for now, decide later |
 
+#### Card Features
+- **Cast** — each card shows the top 3 actors from TMDb
+- **Plex watched badge** — green "👁 Watched" badge appears if you've watched it in Plex
+- **Trailer button** — tap "▶ Trailer" to watch the trailer on YouTube
+- **IMDb button** — tap "🎬 IMDb" to view the movie/show on IMDb
+- **TMDb link** — discover cards link directly to TMDb
+
+#### Search & Filter
+- **Search bar** — type a title and press Enter to search
+- **Filter button** — tap "Filter" to open filter options:
+  - **Genre** — dropdown with 18 genres
+  - **Year range** — min and max year fields
+  - **Minimum rating** — dropdown from 5+ to 9+
+- Active filters are shown on the Filter button label
+- "Clear" resets all filters
+
+#### Swipe Statistics
+- Tap "Stats" to see your swipe counts:
+  - Movies: total, kept, super kept, blocked, skipped, undecided
+  - Shows: same breakdown
+  - Discover: added and hidden counts
+
+#### Calendar
+- Tap the calendar icon to see upcoming releases
+- Day range selector: 7 days, 2 weeks, 1 month, 2 months, 3 months
+- Shows poster, title, release date, and monitoring/downloaded status
+- Movies and shows are listed together by release date
+
 #### Tap Buttons (bottom)
 | Button | Action |
 |--------|--------|
