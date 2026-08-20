@@ -39,6 +39,67 @@ class FakeAsyncClient:
 
 
 class DiscoverDislikeExclusionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_movie_dislike_records_history_when_radarr_exclusion_already_exists(self):
+        client = FakeAsyncClient(
+            [
+                FakeResponse(400, text="Movie is already excluded"),
+                FakeResponse(200, [{"tmdbId": 12345, "movieTitle": "The Test Movie", "id": 77}]),
+            ]
+        )
+        saved = []
+        body = {"title": "The Test Movie", "year": 2024, "type": "movies"}
+
+        with (
+            patch.object(backend.httpx, "AsyncClient", return_value=client),
+            patch.object(backend, "load_hidden", return_value={}),
+            patch.object(backend, "save_hidden", side_effect=lambda data: saved.append(data)),
+        ):
+            result = await backend.dislike_discover(12345, body)
+
+        self.assertEqual({"ok": True}, result)
+        self.assertEqual("dislike", saved[0]["12345"]["hideSource"])
+        self.assertEqual("radarr", saved[0]["12345"]["exclusionSource"])
+        self.assertEqual(77, saved[0]["12345"]["exclusionId"])
+        self.assertEqual(
+            [
+                ("POST", f"{backend.RADARR_URL}/api/v3/exclusions"),
+                ("GET", f"{backend.RADARR_URL}/api/v3/exclusions"),
+            ],
+            [(method, url) for method, url, _ in client.requests],
+        )
+
+    async def test_show_dislike_records_history_when_sonarr_exclusion_already_exists(self):
+        client = FakeAsyncClient(
+            [
+                FakeResponse(200, [{"tvdbId": 9876, "title": "Sonarr Canonical Title"}]),
+                FakeResponse(400, text="Series is already excluded"),
+                FakeResponse(200, [{"tvdbId": 9876, "title": "Sonarr Canonical Title", "id": 88}]),
+            ]
+        )
+        saved = []
+        body = {"title": "The Test Show", "year": 2023, "type": "shows"}
+
+        with (
+            patch.object(backend.httpx, "AsyncClient", return_value=client),
+            patch.object(backend, "load_hidden", return_value={}),
+            patch.object(backend, "save_hidden", side_effect=lambda data: saved.append(data)),
+        ):
+            result = await backend.dislike_discover(54321, body)
+
+        self.assertEqual({"ok": True}, result)
+        self.assertEqual("dislike", saved[0]["54321"]["hideSource"])
+        self.assertEqual("sonarr", saved[0]["54321"]["exclusionSource"])
+        self.assertEqual(9876, saved[0]["54321"]["tvdbId"])
+        self.assertEqual(88, saved[0]["54321"]["exclusionId"])
+        self.assertEqual(
+            [
+                ("GET", f"{backend.SONARR_URL}/api/v3/series/lookup"),
+                ("POST", f"{backend.SONARR_URL}/api/v3/importlistexclusion"),
+                ("GET", f"{backend.SONARR_URL}/api/v3/importlistexclusion"),
+            ],
+            [(method, url) for method, url, _ in client.requests],
+        )
+
     async def test_movie_dislike_adds_radarr_import_list_exclusion_and_preserves_history_metadata(self):
         client = FakeAsyncClient([FakeResponse(201, {"id": 7})])
         saved = []

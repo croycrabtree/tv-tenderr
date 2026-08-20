@@ -1428,10 +1428,27 @@ async def dislike_discover(tmdb_id: int, body: dict = {}):
                 json={"tmdbId": tmdb_id, "movieTitle": title, "movieYear": int(year or 0)},
                 timeout=30,
             )
-            if r.status_code not in (200, 201):
+            exclusion_id = None
+            if r.status_code in (200, 201):
+                response_data = r.json() or {}
+                if isinstance(response_data, dict):
+                    exclusion_id = response_data.get("id")
+            elif r.status_code == 400:
+                original_error = r.text
+                existing = await client.get(
+                    f"{RADARR_URL}/api/v3/exclusions",
+                    headers={"X-Api-Key": RADARR_KEY},
+                    timeout=30,
+                )
+                match = None
+                if existing.status_code == 200:
+                    match = next((item for item in existing.json() if item.get("tmdbId") == tmdb_id), None)
+                if not match:
+                    raise HTTPException(status_code=400, detail=f"Radarr exclusion failed: {original_error}")
+                exclusion_id = match.get("id")
+            else:
                 raise HTTPException(status_code=r.status_code, detail=f"Radarr exclusion failed: {r.text}")
             exclusion_metadata["exclusionSource"] = "radarr"
-            exclusion_id = (r.json() or {}).get("id")
             if exclusion_id is not None:
                 exclusion_metadata["exclusionId"] = exclusion_id
         elif media_type in ("show", "shows"):
@@ -1450,10 +1467,27 @@ async def dislike_discover(tmdb_id: int, body: dict = {}):
                 json={"tvdbId": show["tvdbId"], "title": show["title"]},
                 timeout=30,
             )
-            if r.status_code not in (200, 201):
+            exclusion_id = None
+            if r.status_code in (200, 201):
+                response_data = r.json() or {}
+                if isinstance(response_data, dict):
+                    exclusion_id = response_data.get("id")
+            elif r.status_code == 400:
+                original_error = r.text
+                existing = await client.get(
+                    f"{SONARR_URL}/api/v3/importlistexclusion",
+                    headers={"X-Api-Key": SONARR_KEY},
+                    timeout=30,
+                )
+                match = None
+                if existing.status_code == 200:
+                    match = next((item for item in existing.json() if item.get("tvdbId") == show["tvdbId"]), None)
+                if not match:
+                    raise HTTPException(status_code=400, detail=f"Sonarr exclusion failed: {original_error}")
+                exclusion_id = match.get("id")
+            else:
                 raise HTTPException(status_code=r.status_code, detail=f"Sonarr exclusion failed: {r.text}")
             exclusion_metadata.update({"exclusionSource": "sonarr", "tvdbId": show["tvdbId"]})
-            exclusion_id = (r.json() or {}).get("id")
             if exclusion_id is not None:
                 exclusion_metadata["exclusionId"] = exclusion_id
         else:
