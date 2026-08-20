@@ -145,7 +145,7 @@ Toggle in the top right:
 | **Drag left** | Block / Dislike (Discover adds an Import List Exclusion) |
 | **Drag up** | Skip (Discover hides without an exclusion) |
 
-#### Action Buttons (right side)
+#### Action Buttons (left side)
 | Button | Action |
 |--------|--------|
 | **✗ (red)** | Block / Dislike (Discover adds an Import List Exclusion) |
