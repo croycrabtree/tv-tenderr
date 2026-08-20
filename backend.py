@@ -1171,6 +1171,9 @@ async def get_show_history():
                     break
 
         history.append({
+            # History clients share one model for movies and shows. Keep showId
+            # for API clarity, but also provide the common id field they use.
+            "movieId": int(sid),
             "showId": int(sid),
             "action": info.get("action"),
             "timestamp": info.get("timestamp"),
