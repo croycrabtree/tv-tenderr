@@ -3,7 +3,7 @@
 A Tinder-style app for managing your Plex media library. Swipe through movies and TV shows to keep, block, or clean up your collection.
 
 ![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Web-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
+![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
 
 ## Features
 
@@ -93,4 +93,6 @@ tv-tenderr/
 
 ## License
 
-MIT
+[GNU Affero General Public License v3.0](LICENSE)
+
+This software is free and open source under the AGPL-3.0 license. You are free to use, modify, and distribute it. If you run this software as a network service, you must provide the source code to your users.
