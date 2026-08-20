@@ -98,7 +98,7 @@ History shows all actions with undo buttons:
 - **Un-keep** — removes a keep decision
 - **Restore** — unblocks a blocked item
 - **Remove** — removes an added discover item from Radarr/Sonarr
-- **Show Again** — brings back a hidden discover item
+- **Show Again** — removes the matching Radarr/Sonarr Import List Exclusion, then brings the disliked item back to Discover; skipped items return without changing exclusions
 
 ### Settings
 Tap the **gear icon** (top right) to configure:
@@ -142,14 +142,14 @@ Toggle in the top right:
 | Direction | Action |
 |-----------|--------|
 | **Drag right** | Keep / Add |
-| **Drag left** | Block / Dislike (adds an Import List Exclusion) |
-| **Drag up** | Skip |
+| **Drag left** | Block / Dislike (Discover adds an Import List Exclusion) |
+| **Drag up** | Skip (Discover hides without an exclusion) |
 
 #### Action Buttons (right side)
 | Button | Action |
 |--------|--------|
-| **✗ (red)** | Block / Dislike (adds an Import List Exclusion) |
-| **→ (yellow)** | Skip |
+| **✗ (red)** | Block / Dislike (Discover adds an Import List Exclusion) |
+| **→ (yellow)** | Skip (no Discover exclusion) |
 | **✓/ + (green)** | Keep / Add |
 | **⭐ (blue)** | Super Keep (library only) |
 
@@ -161,12 +161,14 @@ Toggle in the top right:
 ### Discover (Web)
 - Switch between Movies/Shows with tabs
 - Sort by Popular, Newest, or Top Rated
-- Same add/hide gestures as the app
+- Dislike adds a Radarr/Sonarr Import List Exclusion immediately on the web; the Android app waits until its 10-second Undo window expires
+- Skip hides without adding an exclusion
+- History → Show Again removes the matching exclusion before restoring a disliked item
 
 ### History (Web)
 Shows all three histories combined:
 - Movies, Shows, and Discover actions
-- Undo buttons for each action type
+- Undo buttons for each action type; Show Again reverses both the local dislike and its Import List Exclusion
 
 ### Settings (Web)
 Same settings as the Android app:

@@ -575,7 +575,7 @@
                     ${item.action === 'keep' || item.action === 'super_keep' ? `<button class="history-btn" style="background:#e74c3c;color:#fff" onclick="unkeep(${item.movieId},'${item.source}')">Un-keep</button>` : ''}
                     ${item.action === 'block' ? `<button class="history-btn" style="background:#2ecc71;color:#fff" onclick="unblock(${item.movieId},'${item.source}')">Restore</button>` : ''}
                     ${item.action === 'added' ? `<button class="history-btn" style="background:#e74c3c;color:#fff" onclick="removeDiscover(${item.tmdbId},'${item.type || 'movie'}')">Remove</button>` : ''}
-                    ${item.action === 'hidden' ? `<button class="history-btn" style="background:#2ecc71;color:#fff" onclick="unhideDiscover(${item.tmdbId})">Show Again</button>` : ''}
+                    ${item.action === 'hidden' ? `<button class="history-btn" style="background:#2ecc71;color:#fff" title="Restore to Discover and remove its exclusion when applicable" onclick="unhideDiscover(${item.tmdbId})">Show Again</button>` : ''}
                 </div>
             `).join('')}</div>`;
         }
@@ -641,7 +641,8 @@
                     <h4 style="color:#eee;margin:16px 0 8px;font-size:13px">🔍 Discover</h4>
                     <div style="font-size:12px;color:#aaa;line-height:1.8">
                         Swipe/click right to <strong>add</strong> to Radarr/Sonarr.<br>
-                        Swipe/click left to <strong>hide</strong> from feed permanently.<br><br>
+                        Swipe/click left to <strong>Dislike</strong> and add a Radarr/Sonarr Import List Exclusion.<br>
+                        Use <strong>Skip</strong> to hide without adding an exclusion.<br><br>
                         Toggle <strong>🎬/📺</strong> to switch Movies/Shows.<br>
                         Toggle <strong>🔥/🆕/⭐</strong> to change sort order.<br><br>
                         Automatically filters out items already in your library.
@@ -651,7 +652,8 @@
                     <div style="font-size:12px;color:#aaa;line-height:1.8">
                         Click <strong>History</strong> in sidebar to view all actions.<br>
                         Shows Movies, Shows, and Discover history combined.<br>
-                        Undo buttons restore items or remove additions.
+                        <strong>Show Again</strong> removes the matching Import List Exclusion, then restores the disliked item.<br>
+                        Skipped items return without changing exclusions.
                     </div>
 
                     <h4 style="color:#eee;margin:16px 0 8px;font-size:13px">🔄 Plex Refresh</h4>
@@ -786,7 +788,7 @@
 
         async function unhideDiscover(tmdbId) {
             await fetch(API + `/api/discover/${tmdbId}/unhide`, { method: 'POST' });
-            showToast('Back in discover');
+            showToast('Back in Discover; exclusion removed when applicable');
             loadView();
         }
 

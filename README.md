@@ -16,10 +16,10 @@ A Tinder-style app for managing your Plex media library. Swipe through movies an
 - **Calendar view** — upcoming releases from Radarr and Sonarr with monitoring/downloaded status
 - **Plex integration** — refresh libraries from your phone
 - **Radarr & Sonarr** — manage movies and TV shows
-- **Discover** — find new content from all streaming services via TMDb; disliked movies and shows are added to Radarr/Sonarr Import List Exclusions
+- **Discover** — find new content via TMDb; Dislike adds movies and shows to the matching Radarr/Sonarr Import List Exclusions, while Skip hides without excluding
 - **Quality settings** — configure quality profiles and root folders
 - **Undo protection** — 10-second window before destructive actions
-- **History** — track all decisions with undo capability
+- **History** — track all decisions; Show Again removes a Discover Import List Exclusion before restoring the item
 - **Web GUI** — desktop interface with card and grid views, all features mirrored
 
 ## Quick Start
@@ -79,6 +79,9 @@ tv-tenderr/
 - `POST /api/movies/{id}/block` — block a movie (deletes files, adds import list exclusion — prevents re-addition from lists)
 - `GET /api/discover/movies` — discover new movies
 - `GET /api/discover/shows` — discover new shows
+- `POST /api/discover/{tmdbId}/dislike` — hide a Discover item and add its Radarr/Sonarr Import List Exclusion
+- `POST /api/discover/{tmdbId}/hide` — skip/hide a Discover item without adding an exclusion
+- `POST /api/discover/{tmdbId}/unhide` — Show Again: remove its Import List Exclusion, then restore it to Discover
 - `POST /api/plex/refresh` — refresh Plex libraries
 - `GET /api/config` — get configuration
 - `POST /api/config` — update configuration
