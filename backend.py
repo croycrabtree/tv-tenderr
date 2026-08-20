@@ -1419,6 +1419,7 @@ async def dislike_discover(tmdb_id: int, body: dict = {}):
     media_type = body.get("type", "movie")
     title = body.get("title")
     year = body.get("year")
+    exclusion_metadata = {}
     async with httpx.AsyncClient() as client:
         if media_type in ("movie", "movies"):
             r = await client.post(
@@ -1429,6 +1430,10 @@ async def dislike_discover(tmdb_id: int, body: dict = {}):
             )
             if r.status_code not in (200, 201):
                 raise HTTPException(status_code=r.status_code, detail=f"Radarr exclusion failed: {r.text}")
+            exclusion_metadata["exclusionSource"] = "radarr"
+            exclusion_id = (r.json() or {}).get("id")
+            if exclusion_id is not None:
+                exclusion_metadata["exclusionId"] = exclusion_id
         elif media_type in ("show", "shows"):
             r = await client.get(
                 f"{SONARR_URL}/api/v3/series/lookup",
@@ -1447,6 +1452,10 @@ async def dislike_discover(tmdb_id: int, body: dict = {}):
             )
             if r.status_code not in (200, 201):
                 raise HTTPException(status_code=r.status_code, detail=f"Sonarr exclusion failed: {r.text}")
+            exclusion_metadata.update({"exclusionSource": "sonarr", "tvdbId": show["tvdbId"]})
+            exclusion_id = (r.json() or {}).get("id")
+            if exclusion_id is not None:
+                exclusion_metadata["exclusionId"] = exclusion_id
         else:
             raise HTTPException(status_code=400, detail="Unsupported discover type")
 
@@ -1458,6 +1467,8 @@ async def dislike_discover(tmdb_id: int, body: dict = {}):
         "year": year,
         "posterUrl": body.get("posterUrl"),
         "type": media_type,
+        "hideSource": "dislike",
+        **exclusion_metadata,
     }
     save_hidden(hidden)
     return {"ok": True}
@@ -1474,6 +1485,7 @@ async def hide_discover(tmdb_id: int, body: dict = {}):
         "year": body.get("year"),
         "posterUrl": body.get("posterUrl"),
         "type": body.get("type", "movie"),
+        "hideSource": "skip",
     }
     save_hidden(hidden)
     return {"ok": True}
@@ -1626,12 +1638,86 @@ async def get_discover_history():
 
 @app.post("/api/discover/{tmdb_id}/unhide")
 async def unhide_discover(tmdb_id: int):
-    """Remove a hide decision so the item shows up in discover again."""
+    """Remove a discover hide and its associated import-list exclusion."""
     hidden = load_hidden()
     mid = str(tmdb_id)
-    if mid in hidden:
-        del hidden[mid]
-        save_hidden(hidden)
+    info = hidden.get(mid)
+    if not info:
+        return {"ok": True}
+
+    exclusion_source = info.get("exclusionSource")
+    exclusion_id = info.get("exclusionId")
+    if exclusion_source == "radarr" and exclusion_id is None:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{RADARR_URL}/api/v3/exclusions",
+                headers={"X-Api-Key": RADARR_KEY},
+                timeout=30,
+            )
+            if r.status_code != 200:
+                raise HTTPException(status_code=r.status_code, detail=f"Radarr exclusions lookup failed: {r.text}")
+            match = next((item for item in r.json() if item.get("tmdbId") == tmdb_id), None)
+            if match:
+                r = await client.delete(
+                    f"{RADARR_URL}/api/v3/exclusions/{match['id']}",
+                    headers={"X-Api-Key": RADARR_KEY},
+                    timeout=30,
+                )
+                if r.status_code not in (200, 202, 204, 404):
+                    raise HTTPException(status_code=r.status_code, detail=f"Radarr exclusion removal failed: {r.text}")
+    elif exclusion_source == "radarr":
+        async with httpx.AsyncClient() as client:
+            r = await client.delete(
+                f"{RADARR_URL}/api/v3/exclusions/{exclusion_id}",
+                headers={"X-Api-Key": RADARR_KEY},
+                timeout=30,
+            )
+        if r.status_code not in (200, 202, 204, 404):
+            raise HTTPException(status_code=r.status_code, detail=f"Radarr exclusion removal failed: {r.text}")
+    elif exclusion_source == "sonarr" and exclusion_id is None:
+        async with httpx.AsyncClient() as client:
+            tvdb_id = info.get("tvdbId")
+            if tvdb_id is None:
+                r = await client.get(
+                    f"{SONARR_URL}/api/v3/series/lookup",
+                    headers={"X-Api-Key": SONARR_KEY},
+                    params={"term": f"tmdb:{tmdb_id}"},
+                    timeout=15,
+                )
+                if r.status_code != 200:
+                    raise HTTPException(status_code=r.status_code, detail=f"Sonarr series lookup failed: {r.text}")
+                lookup_results = r.json()
+                tvdb_id = lookup_results[0].get("tvdbId") if lookup_results else None
+
+            if tvdb_id is not None:
+                r = await client.get(
+                    f"{SONARR_URL}/api/v3/importlistexclusion",
+                    headers={"X-Api-Key": SONARR_KEY},
+                    timeout=30,
+                )
+                if r.status_code != 200:
+                    raise HTTPException(status_code=r.status_code, detail=f"Sonarr exclusions lookup failed: {r.text}")
+                match = next((item for item in r.json() if item.get("tvdbId") == tvdb_id), None)
+                if match:
+                    r = await client.delete(
+                        f"{SONARR_URL}/api/v3/importlistexclusion/{match['id']}",
+                        headers={"X-Api-Key": SONARR_KEY},
+                        timeout=30,
+                    )
+                    if r.status_code not in (200, 202, 204, 404):
+                        raise HTTPException(status_code=r.status_code, detail=f"Sonarr exclusion removal failed: {r.text}")
+    elif exclusion_source == "sonarr" and exclusion_id is not None:
+        async with httpx.AsyncClient() as client:
+            r = await client.delete(
+                f"{SONARR_URL}/api/v3/importlistexclusion/{exclusion_id}",
+                headers={"X-Api-Key": SONARR_KEY},
+                timeout=30,
+            )
+        if r.status_code not in (200, 202, 204, 404):
+            raise HTTPException(status_code=r.status_code, detail=f"Sonarr exclusion removal failed: {r.text}")
+
+    del hidden[mid]
+    save_hidden(hidden)
     return {"ok": True}
 
 
