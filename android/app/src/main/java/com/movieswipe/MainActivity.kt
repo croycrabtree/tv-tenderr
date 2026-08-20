@@ -412,11 +412,7 @@ class MainActivity : AppCompatActivity() {
                 "shows" -> { if (shows.isNotEmpty() && currentIndex < shows.size) blockShowWithUndo() }
                 "discover" -> {
                     if (discoverItems.isNotEmpty() && currentIndex < discoverItems.size) {
-                        val item = discoverItems[currentIndex]
-                        animateCardOut(false) {
-                            api.hideDiscover(item.tmdbId, item.title, item.year, item.posterUrl, discoverType) { _, _ -> }
-                            advanceCard()
-                        }
+                        dislikeDiscoverWithUndo()
                     }
                 }
             }
@@ -493,6 +489,23 @@ class MainActivity : AppCompatActivity() {
                 showCurrentCard()
             }
             pendingBlock = { api.blockShow(show.id) { _, _ -> } }
+            advanceCard()
+        }
+    }
+
+    private fun dislikeDiscoverWithUndo() {
+        val item = discoverItems[currentIndex]
+        val itemIndex = currentIndex
+        val itemType = discoverType
+        animateCardOut(false) {
+            showUndoBanner("\"${item.title}\" will be added to Import List Exclusions") {
+                discoverItems.add(itemIndex, item)
+                currentIndex = itemIndex
+                showCurrentCard()
+            }
+            pendingBlock = {
+                api.dislikeDiscover(item.tmdbId, item.title, item.year, item.posterUrl, itemType) { _, _ -> }
+            }
             advanceCard()
         }
     }
@@ -1162,7 +1175,7 @@ class MainActivity : AppCompatActivity() {
                                 advanceCard()
                             }
                         } else {
-                            animateCardOut(false) { api.hideDiscover(item.tmdbId, item.title, item.year, item.posterUrl, discoverType) { _, _ -> }; advanceCard() }
+                            dislikeDiscoverWithUndo()
                         }
                     } else {
                         v.animate().translationX(0f).translationY(0f).rotation(0f).setDuration(200).start()

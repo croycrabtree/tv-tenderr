@@ -315,7 +315,7 @@
                 <div class="single-card-container">
                     <div class="action-buttons">
                         ${isDiscover ? `
-                            <button class="action-btn red" onclick="singleDiscoverHide()" title="Hide">✗</button>
+                            <button class="action-btn red" onclick="singleDiscoverHide()" title="Dislike and add to Import List Exclusions">✗</button>
                             <button class="action-btn yellow" onclick="singleSkip()" title="Skip">→</button>
                             <button class="action-btn green" onclick="singleDiscoverAdd()" title="Add to library">+</button>
                         ` : `
@@ -720,7 +720,7 @@
                 `<div>${item.overview || 'No description available.'}</div>`;
             document.getElementById('detailActions').innerHTML = `
                 <button class="btn btn-green" onclick="discoverAdd(${item.tmdbId}); closeDetail()">+ Add to Library</button>
-                <button class="btn btn-red" onclick="discoverHide(${item.tmdbId}, '${item.title}', '${item.year || ''}', '${item.posterUrl || ''}'); closeDetail()">✗ Hide</button>
+                <button class="btn btn-red" onclick="discoverHide(${item.tmdbId}, '${item.title}', '${item.year || ''}', '${item.posterUrl || ''}'); closeDetail()">✗ Dislike</button>
                 <button class="btn btn-outline" onclick="closeDetail()">Close</button>
             `;
             panel.classList.add('open');
@@ -755,11 +755,11 @@
         }
 
         async function discoverHide(tmdbId, title, year, posterUrl) {
-            await fetch(API + `/api/discover/${tmdbId}/hide`, {
+            await fetch(API + `/api/discover/${tmdbId}/dislike`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ action: 'hidden', title, year, posterUrl, type: discoverType })
+                body: JSON.stringify({ title, year, posterUrl, type: discoverType })
             });
-            showToast('Hidden');
+            showToast('Added to Import List Exclusions');
             loadView();
         }
 

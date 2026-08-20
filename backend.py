@@ -1413,6 +1413,56 @@ async def discover_shows(page: int = 1, limit: int = 20, providers: str = "", so
     return {"shows": final_shows, "total": 10000, "page": page}
 
 
+@app.post("/api/discover/{tmdb_id}/dislike")
+async def dislike_discover(tmdb_id: int, body: dict = {}):
+    """Hide a disliked discover item and prevent import lists from re-adding it."""
+    media_type = body.get("type", "movie")
+    title = body.get("title")
+    year = body.get("year")
+    async with httpx.AsyncClient() as client:
+        if media_type in ("movie", "movies"):
+            r = await client.post(
+                f"{RADARR_URL}/api/v3/exclusions",
+                headers={"X-Api-Key": RADARR_KEY},
+                json={"tmdbId": tmdb_id, "movieTitle": title, "movieYear": int(year or 0)},
+                timeout=30,
+            )
+            if r.status_code not in (200, 201):
+                raise HTTPException(status_code=r.status_code, detail=f"Radarr exclusion failed: {r.text}")
+        elif media_type in ("show", "shows"):
+            r = await client.get(
+                f"{SONARR_URL}/api/v3/series/lookup",
+                headers={"X-Api-Key": SONARR_KEY},
+                params={"term": f"tmdb:{tmdb_id}"},
+                timeout=15,
+            )
+            if r.status_code != 200 or not r.json():
+                raise HTTPException(status_code=404, detail="Show not found")
+            show = r.json()[0]
+            r = await client.post(
+                f"{SONARR_URL}/api/v3/importlistexclusion",
+                headers={"X-Api-Key": SONARR_KEY},
+                json={"tvdbId": show["tvdbId"], "title": show["title"]},
+                timeout=30,
+            )
+            if r.status_code not in (200, 201):
+                raise HTTPException(status_code=r.status_code, detail=f"Sonarr exclusion failed: {r.text}")
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported discover type")
+
+    hidden = load_hidden()
+    hidden[str(tmdb_id)] = {
+        "action": "hidden",
+        "timestamp": datetime.now().isoformat(),
+        "title": title,
+        "year": year,
+        "posterUrl": body.get("posterUrl"),
+        "type": media_type,
+    }
+    save_hidden(hidden)
+    return {"ok": True}
+
+
 @app.post("/api/discover/{tmdb_id}/hide")
 async def hide_discover(tmdb_id: int, body: dict = {}):
     """Hide a discover item so it doesn't show again."""

@@ -81,10 +81,10 @@ Tap the mode label until it says **Discover** (turns orange).
 | Gesture | Action | Description |
 |---------|--------|-------------|
 | **→ Right** | Add | Adds to Radarr/Sonarr and searches for files |
-| **← Left** | Hide | Removes from discover feed permanently |
-| **↑ Up** | Skip | Hides from discover |
+| **← Left** | Dislike | Hides the item and adds it to the Radarr/Sonarr Import List Exclusions after the 10-second undo window |
+| **↑ Up** | Skip | Hides from discover without creating an Import List Exclusion |
 | **Tap green (+)** | Add to library |
-| **Tap red (✗)** | Hide from discover |
+| **Tap red (✗)** | Dislike with 10-second undo, then add to Import List Exclusions |
 
 Discover automatically filters out movies/shows already in your library.
 
@@ -142,13 +142,13 @@ Toggle in the top right:
 | Direction | Action |
 |-----------|--------|
 | **Drag right** | Keep / Add |
-| **Drag left** | Block / Hide |
+| **Drag left** | Block / Dislike (adds an Import List Exclusion) |
 | **Drag up** | Skip |
 
 #### Action Buttons (right side)
 | Button | Action |
 |--------|--------|
-| **✗ (red)** | Block / Hide |
+| **✗ (red)** | Block / Dislike (adds an Import List Exclusion) |
 | **→ (yellow)** | Skip |
 | **✓/ + (green)** | Keep / Add |
 | **⭐ (blue)** | Super Keep (library only) |

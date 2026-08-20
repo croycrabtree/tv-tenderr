@@ -16,7 +16,7 @@ A Tinder-style app for managing your Plex media library. Swipe through movies an
 - **Calendar view** — upcoming releases from Radarr and Sonarr with monitoring/downloaded status
 - **Plex integration** — refresh libraries from your phone
 - **Radarr & Sonarr** — manage movies and TV shows
-- **Discover** — find new content from all streaming services via TMDb with TMDb links
+- **Discover** — find new content from all streaming services via TMDb; disliked movies and shows are added to Radarr/Sonarr Import List Exclusions
 - **Quality settings** — configure quality profiles and root folders
 - **Undo protection** — 10-second window before destructive actions
 - **History** — track all decisions with undo capability

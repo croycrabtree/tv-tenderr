@@ -328,6 +328,28 @@ class ApiClient(private var baseUrl: String) {
         })
     }
 
+    fun dislikeDiscover(tmdbId: Int, title: String? = null, year: String? = null, posterUrl: String? = null, type: String = "movie", callback: (Boolean, String?) -> Unit = { _, _ -> }) {
+        val bodyMap = mutableMapOf<String, Any>()
+        title?.let { bodyMap["title"] = it }
+        year?.let { bodyMap["year"] = it }
+        posterUrl?.let { bodyMap["posterUrl"] = it }
+        bodyMap["type"] = type
+
+        val json = gson.toJson(bodyMap)
+        val body = json.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("$baseUrl/api/discover/$tmdbId/dislike")
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { callback(false, e.message) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { callback(it.isSuccessful, if (it.isSuccessful) null else "HTTP ${it.code}") }
+            }
+        })
+    }
+
     fun hideDiscover(tmdbId: Int, title: String? = null, year: String? = null, posterUrl: String? = null, type: String = "movie", callback: (Boolean, String?) -> Unit = { _, _ -> }) {
         val bodyMap = mutableMapOf<String, Any>("action" to "hidden")
         title?.let { bodyMap["title"] = it }
