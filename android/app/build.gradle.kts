@@ -11,16 +11,20 @@ android {
         applicationId = "com.movieswipe"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10302
-        versionName = "1.3.2"
+        versionCode = 10303
+        versionName = "1.3.3"
     }
 
     signingConfigs {
         create("release") {
             storeFile = file("tv-tenderr-release.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "Hogwash101"
+            storePassword = providers.gradleProperty("TV_TENDERR_KEYSTORE_PASSWORD").orNull
+                ?: System.getenv("KEYSTORE_PASSWORD")
+                ?: throw GradleException("TV Tenderr keystore password is not configured")
             keyAlias = "tv-tenderr"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: "Hogwash101"
+            keyPassword = providers.gradleProperty("TV_TENDERR_KEY_PASSWORD").orNull
+                ?: System.getenv("KEY_PASSWORD")
+                ?: throw GradleException("TV Tenderr key password is not configured")
         }
     }
 

@@ -702,15 +702,49 @@ async def get_poster(movie_id: int):
 
 @app.get("/api/config")
 async def get_config():
-    """Get app configuration."""
+    """Get non-secret app configuration and credential status."""
     return {
         "radarrUrl": RADARR_URL,
-        "radarrKey": RADARR_KEY,
         "sonarrUrl": SONARR_URL,
-        "sonarrKey": SONARR_KEY,
         "plexUrl": PLEX_URL,
-        "plexToken": PLEX_TOKEN,
-        "tmdbKey": TMDB_KEY,
+        "hasRadarrKey": bool(RADARR_KEY),
+        "hasSonarrKey": bool(SONARR_KEY),
+        "hasPlexToken": bool(PLEX_TOKEN),
+        "hasTmdbKey": bool(TMDB_KEY),
+    }
+
+
+@app.get("/api/config/options")
+async def get_config_options():
+    """Proxy quality profiles and roots without exposing Arr API keys."""
+    async with httpx.AsyncClient() as client:
+        requests = (
+            (f"{RADARR_URL}/api/v3/qualityprofile", RADARR_KEY),
+            (f"{RADARR_URL}/api/v3/rootfolder", RADARR_KEY),
+            (f"{SONARR_URL}/api/v3/qualityprofile", SONARR_KEY),
+            (f"{SONARR_URL}/api/v3/rootfolder", SONARR_KEY),
+        )
+        responses = []
+        for url, api_key in requests:
+            response = await client.get(
+                url,
+                headers={"X-Api-Key": api_key},
+                timeout=30,
+            )
+            responses.append(response.json() if response.status_code == 200 else [])
+
+    radarr_profiles, radarr_roots, sonarr_profiles, sonarr_roots = responses
+    return {
+        "radarrProfiles": [
+            {"id": item.get("id"), "name": item.get("name")}
+            for item in radarr_profiles
+        ],
+        "radarrRoots": [item.get("path") for item in radarr_roots if item.get("path")],
+        "sonarrProfiles": [
+            {"id": item.get("id"), "name": item.get("name")}
+            for item in sonarr_profiles
+        ],
+        "sonarrRoots": [item.get("path") for item in sonarr_roots if item.get("path")],
     }
 
 @app.get("/api/latest-release")

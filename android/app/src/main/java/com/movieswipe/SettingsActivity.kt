@@ -149,7 +149,6 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun loadQualityProfiles(serverUrl: String) {
         val client = OkHttpClient()
-
         val request = Request.Builder()
             .url("$serverUrl/api/config")
             .get()
@@ -163,35 +162,24 @@ class SettingsActivity : AppCompatActivity() {
                         val body = it.body?.string()
                         val config = com.google.gson.Gson().fromJson(body, Map::class.java) as Map<*, *>
                         val radarrUrl = config["radarrUrl"]?.toString() ?: return@use
-                        val radarrKey = config["radarrKey"]?.toString() ?: return@use
                         val sonarrUrl = config["sonarrUrl"]?.toString() ?: return@use
-                        val sonarrKey = config["sonarrKey"]?.toString() ?: return@use
 
                         runOnUiThread {
                             binding.etRadarrUrl.setText(preferBackendSetting(binding.etRadarrUrl.text.toString(), radarrUrl, "http://localhost:7878"))
-                            binding.etRadarrKey.setText(preferBackendSetting(binding.etRadarrKey.text.toString(), radarrKey, "YOUR_RADARR_API_KEY"))
                             binding.etSonarrUrl.setText(preferBackendSetting(binding.etSonarrUrl.text.toString(), sonarrUrl, "http://localhost:8989"))
-                            binding.etSonarrKey.setText(preferBackendSetting(binding.etSonarrKey.text.toString(), sonarrKey, "YOUR_SONARR_API_KEY"))
                             binding.etPlexUrl.setText(preferBackendSetting(binding.etPlexUrl.text.toString(), config["plexUrl"]?.toString() ?: "", "http://localhost:32400"))
-                            binding.etPlexToken.setText(preferBackendSetting(binding.etPlexToken.text.toString(), config["plexToken"]?.toString() ?: "", "YOUR_PLEX_TOKEN"))
-                            binding.etTmdbKey.setText(preferBackendSetting(binding.etTmdbKey.text.toString(), config["tmdbKey"]?.toString() ?: "", "YOUR_TMDB_KEY"))
                         }
-
-                        fetchProfiles(radarrUrl, radarrKey, "radarr")
-                        fetchRoots(radarrUrl, radarrKey, "radarr")
-                        fetchProfiles(sonarrUrl, sonarrKey, "sonarr")
-                        fetchRoots(sonarrUrl, sonarrKey, "sonarr")
+                        fetchBackendOptions(serverUrl)
                     }
                 }
             }
         })
     }
 
-    private fun fetchProfiles(baseUrl: String, apiKey: String, type: String) {
+    private fun fetchBackendOptions(serverUrl: String) {
         val client = OkHttpClient()
         val request = Request.Builder()
-            .url("$baseUrl/api/v3/qualityprofile")
-            .addHeader("X-Api-Key", apiKey)
+            .url("$serverUrl/api/config/options")
             .build()
 
         client.newCall(request).enqueue(object : Callback {
@@ -200,27 +188,26 @@ class SettingsActivity : AppCompatActivity() {
                 response.use {
                     if (it.isSuccessful) {
                         val body = it.body?.string()
-                        val profiles = com.google.gson.Gson().fromJson(body, Array<QualityProfile>::class.java)
+                        val options = com.google.gson.Gson().fromJson(body, BackendOptions::class.java)
                         runOnUiThread {
-                            if (type == "radarr") {
-                                radarrProfiles.clear()
-                                radarrProfiles.addAll(profiles.map { p -> Pair(p.id, p.name) })
-                                val adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, radarrProfiles.map { it.second })
-                                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                                binding.spinnerRadarrQuality.adapter = adapter
-                                val savedId = getSharedPreferences("movieswipe", MODE_PRIVATE).getInt("radarr_quality_id", 4)
-                                val pos = radarrProfiles.indexOfFirst { it.first == savedId }
-                                if (pos >= 0) binding.spinnerRadarrQuality.setSelection(pos)
-                            } else {
-                                sonarrProfiles.clear()
-                                sonarrProfiles.addAll(profiles.map { p -> Pair(p.id, p.name) })
-                                val adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, sonarrProfiles.map { it.second })
-                                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                                binding.spinnerSonarrQuality.adapter = adapter
-                                val savedId = getSharedPreferences("movieswipe", MODE_PRIVATE).getInt("sonarr_quality_id", 4)
-                                val pos = sonarrProfiles.indexOfFirst { it.first == savedId }
-                                if (pos >= 0) binding.spinnerSonarrQuality.setSelection(pos)
-                            }
+                            radarrProfiles.clear()
+                            radarrProfiles.addAll(options.radarrProfiles.map { Pair(it.id, it.name) })
+                            sonarrProfiles.clear()
+                            sonarrProfiles.addAll(options.sonarrProfiles.map { Pair(it.id, it.name) })
+                            radarrRoots.clear()
+                            radarrRoots.addAll(options.radarrRoots)
+                            sonarrRoots.clear()
+                            sonarrRoots.addAll(options.sonarrRoots)
+
+                            binding.spinnerRadarrQuality.adapter = spinnerAdapter(radarrProfiles.map { it.second })
+                            binding.spinnerSonarrQuality.adapter = spinnerAdapter(sonarrProfiles.map { it.second })
+                            binding.spinnerRadarrRoot.adapter = spinnerAdapter(radarrRoots)
+                            binding.spinnerSonarrRoot.adapter = spinnerAdapter(sonarrRoots)
+
+                            selectSavedProfile(binding.spinnerRadarrQuality, radarrProfiles, "radarr_quality_id")
+                            selectSavedProfile(binding.spinnerSonarrQuality, sonarrProfiles, "sonarr_quality_id")
+                            selectSavedRoot(binding.spinnerRadarrRoot, radarrRoots, "radarr_root", "H:\\")
+                            selectSavedRoot(binding.spinnerSonarrRoot, sonarrRoots, "sonarr_root", "I:\\TV")
                         }
                     }
                 }
@@ -228,50 +215,29 @@ class SettingsActivity : AppCompatActivity() {
         })
     }
 
-    private fun fetchRoots(baseUrl: String, apiKey: String, type: String) {
-        val client = OkHttpClient()
-        val request = Request.Builder()
-            .url("$baseUrl/api/v3/rootfolder")
-            .addHeader("X-Api-Key", apiKey)
-            .build()
+    private fun spinnerAdapter(values: List<String>): ArrayAdapter<String> =
+        ArrayAdapter(this, android.R.layout.simple_spinner_item, values).also {
+            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
 
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {}
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    if (it.isSuccessful) {
-                        val body = it.body?.string()
-                        val folders = com.google.gson.Gson().fromJson(body, Array<RootFolder>::class.java)
-                        runOnUiThread {
-                            if (type == "radarr") {
-                                radarrRoots.clear()
-                                radarrRoots.addAll(folders.map { it.path })
-                                val adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, radarrRoots)
-                                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                                binding.spinnerRadarrRoot.adapter = adapter
-                                val saved = getSharedPreferences("movieswipe", MODE_PRIVATE).getString("radarr_root", "H:\\")
-                                val pos = radarrRoots.indexOf(saved)
-                                if (pos >= 0) binding.spinnerRadarrRoot.setSelection(pos)
-                            } else {
-                                sonarrRoots.clear()
-                                sonarrRoots.addAll(folders.map { it.path })
-                                val adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, sonarrRoots)
-                                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                                binding.spinnerSonarrRoot.adapter = adapter
-                                val saved = getSharedPreferences("movieswipe", MODE_PRIVATE).getString("sonarr_root", "I:\\TV")
-                                val pos = sonarrRoots.indexOf(saved)
-                                if (pos >= 0) binding.spinnerSonarrRoot.setSelection(pos)
-                            }
-                        }
-                    }
-                }
-            }
-        })
+    private fun selectSavedProfile(spinner: android.widget.Spinner, profiles: List<Pair<Int, String>>, key: String) {
+        val savedId = getSharedPreferences("movieswipe", MODE_PRIVATE).getInt(key, 4)
+        profiles.indexOfFirst { it.first == savedId }.takeIf { it >= 0 }?.let(spinner::setSelection)
+    }
+
+    private fun selectSavedRoot(spinner: android.widget.Spinner, roots: List<String>, key: String, fallback: String) {
+        val saved = getSharedPreferences("movieswipe", MODE_PRIVATE).getString(key, fallback)
+        roots.indexOf(saved).takeIf { it >= 0 }?.let(spinner::setSelection)
     }
 }
 
 data class QualityProfile(val id: Int, val name: String)
-data class RootFolder(val path: String)
+data class BackendOptions(
+    val radarrProfiles: List<QualityProfile>,
+    val radarrRoots: List<String>,
+    val sonarrProfiles: List<QualityProfile>,
+    val sonarrRoots: List<String>,
+)
 
 private fun isNewerVersion(latest: String, current: String): Boolean {
     val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
