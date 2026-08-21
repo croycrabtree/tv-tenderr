@@ -114,15 +114,14 @@ class SettingsActivity : AppCompatActivity() {
             editor.apply()
 
             // Push config to backend
-            val config = mapOf(
-                "radarrUrl" to binding.etRadarrUrl.text.toString().trim(),
-                "radarrKey" to binding.etRadarrKey.text.toString().trim(),
-                "sonarrUrl" to binding.etSonarrUrl.text.toString().trim(),
-                "sonarrKey" to binding.etSonarrKey.text.toString().trim(),
-                "plexUrl" to binding.etPlexUrl.text.toString().trim(),
-                "plexToken" to binding.etPlexToken.text.toString().trim(),
-                "tmdbKey" to binding.etTmdbKey.text.toString().trim()
-            )
+            val config = mutableMapOf<String, String>()
+            configuredSetting(binding.etRadarrUrl.text.toString(), "http://localhost:7878")?.let { config["radarrUrl"] = it }
+            configuredSetting(binding.etRadarrKey.text.toString(), "YOUR_RADARR_API_KEY")?.let { config["radarrKey"] = it }
+            configuredSetting(binding.etSonarrUrl.text.toString(), "http://localhost:8989")?.let { config["sonarrUrl"] = it }
+            configuredSetting(binding.etSonarrKey.text.toString(), "YOUR_SONARR_API_KEY")?.let { config["sonarrKey"] = it }
+            configuredSetting(binding.etPlexUrl.text.toString(), "http://localhost:32400")?.let { config["plexUrl"] = it }
+            configuredSetting(binding.etPlexToken.text.toString(), "YOUR_PLEX_TOKEN")?.let { config["plexToken"] = it }
+            configuredSetting(binding.etTmdbKey.text.toString(), "YOUR_TMDB_KEY")?.let { config["tmdbKey"] = it }
 
             val client = OkHttpClient()
             val json = com.google.gson.Gson().toJson(config)

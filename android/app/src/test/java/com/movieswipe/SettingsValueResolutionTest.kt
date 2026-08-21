@@ -25,4 +25,11 @@ class SettingsValueResolutionTest {
         assertEquals("Settings saved", settingsSaveMessage(true))
         assertEquals("Saved locally (backend rejected settings)", settingsSaveMessage(false))
     }
+
+    @Test
+    fun placeholderSettingsAreNotPushedToANewBackend() {
+        assertEquals(null, configuredSetting("YOUR_RADARR_API_KEY", "YOUR_RADARR_API_KEY"))
+        assertEquals(null, configuredSetting("http://localhost:7878", "http://localhost:7878"))
+        assertEquals("real-key", configuredSetting("real-key", "YOUR_RADARR_API_KEY"))
+    }
 }

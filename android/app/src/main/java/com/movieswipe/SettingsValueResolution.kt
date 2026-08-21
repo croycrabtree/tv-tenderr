@@ -5,3 +5,6 @@ fun preferBackendSetting(localValue: String, backendValue: String, defaultValue:
 
 fun settingsSaveMessage(responseSuccessful: Boolean): String =
     if (responseSuccessful) "Settings saved" else "Saved locally (backend rejected settings)"
+
+fun configuredSetting(value: String, defaultValue: String): String? =
+    value.trim().takeIf { it.isNotEmpty() && it != defaultValue }
