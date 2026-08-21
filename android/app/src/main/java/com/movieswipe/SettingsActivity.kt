@@ -137,10 +137,12 @@ class SettingsActivity : AppCompatActivity() {
                     runOnUiThread { binding.tvStatus.text = "Saved locally (backend unreachable)" }
                 }
                 override fun onResponse(call: Call, response: Response) {
+                    val message = settingsSaveMessage(response.isSuccessful)
                     runOnUiThread {
-                        binding.tvStatus.text = "Settings saved"
-                        Toast.makeText(this@SettingsActivity, "Settings saved", Toast.LENGTH_SHORT).show()
+                        binding.tvStatus.text = message
+                        Toast.makeText(this@SettingsActivity, message, Toast.LENGTH_SHORT).show()
                     }
+                    response.close()
                 }
             })
         }
@@ -167,13 +169,13 @@ class SettingsActivity : AppCompatActivity() {
                         val sonarrKey = config["sonarrKey"]?.toString() ?: return@use
 
                         runOnUiThread {
-                            if (binding.etRadarrUrl.text.isEmpty()) binding.etRadarrUrl.setText(radarrUrl)
-                            if (binding.etRadarrKey.text.isEmpty()) binding.etRadarrKey.setText(radarrKey)
-                            if (binding.etSonarrUrl.text.isEmpty()) binding.etSonarrUrl.setText(sonarrUrl)
-                            if (binding.etSonarrKey.text.isEmpty()) binding.etSonarrKey.setText(sonarrKey)
-                            if (binding.etPlexUrl.text.isEmpty()) binding.etPlexUrl.setText(config["plexUrl"]?.toString() ?: "")
-                            if (binding.etPlexToken.text.isEmpty()) binding.etPlexToken.setText(config["plexToken"]?.toString() ?: "")
-                            if (binding.etTmdbKey.text.isEmpty()) binding.etTmdbKey.setText(config["tmdbKey"]?.toString() ?: "")
+                            binding.etRadarrUrl.setText(preferBackendSetting(binding.etRadarrUrl.text.toString(), radarrUrl, "http://localhost:7878"))
+                            binding.etRadarrKey.setText(preferBackendSetting(binding.etRadarrKey.text.toString(), radarrKey, "YOUR_RADARR_API_KEY"))
+                            binding.etSonarrUrl.setText(preferBackendSetting(binding.etSonarrUrl.text.toString(), sonarrUrl, "http://localhost:8989"))
+                            binding.etSonarrKey.setText(preferBackendSetting(binding.etSonarrKey.text.toString(), sonarrKey, "YOUR_SONARR_API_KEY"))
+                            binding.etPlexUrl.setText(preferBackendSetting(binding.etPlexUrl.text.toString(), config["plexUrl"]?.toString() ?: "", "http://localhost:32400"))
+                            binding.etPlexToken.setText(preferBackendSetting(binding.etPlexToken.text.toString(), config["plexToken"]?.toString() ?: "", "YOUR_PLEX_TOKEN"))
+                            binding.etTmdbKey.setText(preferBackendSetting(binding.etTmdbKey.text.toString(), config["tmdbKey"]?.toString() ?: "", "YOUR_TMDB_KEY"))
                         }
 
                         fetchProfiles(radarrUrl, radarrKey, "radarr")

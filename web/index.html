@@ -574,6 +574,7 @@
                     </div>
                     ${item.action === 'keep' || item.action === 'super_keep' ? `<button class="history-btn" style="background:#e74c3c;color:#fff" onclick="unkeep(${item.movieId},'${item.source}')">Un-keep</button>` : ''}
                     ${item.action === 'block' ? `<button class="history-btn" style="background:#2ecc71;color:#fff" onclick="unblock(${item.movieId},'${item.source}')">Restore</button>` : ''}
+                    ${item.action === 'clean' ? `<button class="history-btn" style="background:#3498db;color:#fff" onclick="unclean(${item.movieId})">Re-monitor</button>` : ''}
                     ${item.action === 'added' ? `<button class="history-btn" style="background:#e74c3c;color:#fff" onclick="removeDiscover(${item.tmdbId},'${item.type || 'movie'}')">Remove</button>` : ''}
                     ${item.action === 'hidden' ? `<button class="history-btn" style="background:#2ecc71;color:#fff" title="Restore to Discover and remove its exclusion when applicable" onclick="unhideDiscover(${item.tmdbId})">Show Again</button>` : ''}
                 </div>
@@ -612,7 +613,7 @@
                 <div class="settings-group" style="margin-top:16px">
                     <h3>🔄 App Updates</h3>
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-                        <span style="color:#aaa;font-size:13px">Web UI: v1.3.0</span>
+                        <span style="color:#aaa;font-size:13px">Web UI: v1.3.1</span>
                         <button class="btn btn-blue" onclick="checkForUpdates()">Check for Updates</button>
                     </div>
                     <div id="updateStatus" style="font-size:13px;color:#888"></div>
@@ -765,31 +766,42 @@
             loadView();
         }
 
+        async function postHistoryAction(endpoint) {
+            const response = await fetch(API + endpoint, { method: 'POST' });
+            if (!response.ok) throw new Error(`History action failed: ${response.status}`);
+        }
+
+        async function finishHistoryAction(endpoint, successMessage) {
+            try {
+                await postHistoryAction(endpoint);
+                showToast(successMessage);
+                loadView();
+            } catch (error) {
+                showToast(error.message);
+            }
+        }
+
         async function unkeep(id, source) {
-            if (source === 'Movies') await fetch(API + `/api/movies/${id}/unkeep`, { method: 'POST' });
-            else await fetch(API + `/api/shows/${id}/unkeep`, { method: 'POST' });
-            showToast('Un-kept');
-            loadView();
+            const endpoint = source === 'Movies' ? `/api/movies/${id}/unkeep` : `/api/shows/${id}/unkeep`;
+            await finishHistoryAction(endpoint, 'Un-kept');
         }
 
         async function unblock(id, source) {
-            if (source === 'Movies') await fetch(API + `/api/movies/${id}/unblock`, { method: 'POST' });
-            else await fetch(API + `/api/shows/${id}/unblock`, { method: 'POST' });
-            showToast('Restored');
-            loadView();
+            const endpoint = source === 'Movies' ? `/api/movies/${id}/unblock` : `/api/shows/${id}/unblock`;
+            await finishHistoryAction(endpoint, 'Restored');
+        }
+
+        async function unclean(id) {
+            await finishHistoryAction(`/api/shows/${id}/unclean`, 'Episodes re-monitored');
         }
 
         async function removeDiscover(tmdbId, type) {
             const endpoint = type === 'show' ? 'remove_show' : 'remove_movie';
-            await fetch(API + `/api/discover/${tmdbId}/${endpoint}`, { method: 'POST' });
-            showToast('Removed from library');
-            loadView();
+            await finishHistoryAction(`/api/discover/${tmdbId}/${endpoint}`, 'Removed from library');
         }
 
         async function unhideDiscover(tmdbId) {
-            await fetch(API + `/api/discover/${tmdbId}/unhide`, { method: 'POST' });
-            showToast('Back in Discover; exclusion removed when applicable');
-            loadView();
+            await finishHistoryAction(`/api/discover/${tmdbId}/unhide`, 'Back in Discover; exclusion removed when applicable');
         }
 
         async function checkForUpdates() {

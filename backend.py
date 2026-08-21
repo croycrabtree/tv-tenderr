@@ -999,14 +999,49 @@ async def unkeep_show(show_id: int):
 
 @app.post("/api/shows/{show_id}/unblock")
 async def unblock_show(show_id: int):
-    """Remove a block decision - show goes back to undecided."""
+    """Re-add a blocked show to Sonarr, then remove its block decision."""
     decisions = load_show_decisions()
     sid = str(show_id)
-    if sid in decisions and decisions[sid].get("action") == "block":
-        del decisions[sid]
-        save_show_decisions(decisions)
-        return {"ok": True, "action": "unblock"}
-    raise HTTPException(status_code=404, detail="No block decision found")
+    if sid not in decisions or decisions[sid].get("action") != "block":
+        raise HTTPException(status_code=404, detail="No block decision found")
+
+    tvdb_id = decisions[sid].get("tvdbId")
+    if not tvdb_id:
+        raise HTTPException(status_code=400, detail="No tvdbId stored - cannot re-add")
+
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"{SONARR_URL}/api/v3/series/lookup",
+            headers={"X-Api-Key": SONARR_KEY},
+            params={"term": f"tvdb:{tvdb_id}"},
+            timeout=15,
+        )
+        if r.status_code != 200 or not r.json():
+            raise HTTPException(status_code=404, detail="Show not found on TVDB")
+
+        show_data = r.json()[0]
+        add_payload = {
+            "title": show_data["title"],
+            "tvdbId": tvdb_id,
+            "qualityProfileId": SONARR_QUALITY_ID,
+            "rootFolderPath": SONARR_ROOT_FOLDER,
+            "monitored": True,
+            "addOptions": {"searchForMissingEpisodes": False},
+            "images": show_data.get("images", []),
+            "seasons": show_data.get("seasons", []),
+        }
+        r = await client.post(
+            f"{SONARR_URL}/api/v3/series",
+            headers={"X-Api-Key": SONARR_KEY},
+            json=add_payload,
+            timeout=30,
+        )
+        if r.status_code not in (200, 201):
+            raise HTTPException(status_code=r.status_code, detail=f"Sonarr add failed: {r.text}")
+
+    del decisions[sid]
+    save_show_decisions(decisions)
+    return {"ok": True, "action": "unblock", "title": show_data["title"]}
 
 @app.post("/api/shows/{show_id}/clean")
 async def clean_show(show_id: int):
@@ -1660,6 +1695,8 @@ async def get_discover_history():
                     pass
 
             history.append({
+                # Android uses the shared HistoryItem model for every section.
+                "movieId": int(tmdb_id),
                 "tmdbId": int(tmdb_id),
                 "action": info.get("action", "hidden"),
                 "timestamp": info.get("timestamp"),
@@ -1762,22 +1799,26 @@ async def unhide_discover(tmdb_id: int):
 async def remove_movie_from_discover(tmdb_id: int):
     """Remove a movie that was added via discover from Radarr."""
     async with httpx.AsyncClient() as client:
-        # Find the movie in Radarr by tmdbId
         r = await client.get(
             f"{RADARR_URL}/api/v3/movie",
             headers={"X-Api-Key": RADARR_KEY},
             timeout=30
         )
-        if r.status_code == 200:
-            for m in r.json():
-                if m.get("tmdbId") == tmdb_id:
-                    await client.delete(
-                        f"{RADARR_URL}/api/v3/movie/{m['id']}",
-                        headers={"X-Api-Key": RADARR_KEY},
-                        params={"deleteFiles": "true"},
-                        timeout=15
-                    )
-                    break
+        if r.status_code != 200:
+            raise HTTPException(status_code=r.status_code, detail=f"Radarr lookup failed: {r.text}")
+
+        movie = next((m for m in r.json() if m.get("tmdbId") == tmdb_id), None)
+        if not movie:
+            raise HTTPException(status_code=404, detail="Movie is no longer in Radarr")
+
+        r = await client.delete(
+            f"{RADARR_URL}/api/v3/movie/{movie['id']}",
+            headers={"X-Api-Key": RADARR_KEY},
+            params={"deleteFiles": "true"},
+            timeout=15
+        )
+        if r.status_code not in (200, 202, 204):
+            raise HTTPException(status_code=r.status_code, detail=f"Radarr delete failed: {r.text}")
 
     # Remove from hidden so it shows in discover again
     hidden = load_hidden()
@@ -1793,33 +1834,39 @@ async def remove_movie_from_discover(tmdb_id: int):
 async def remove_show_from_discover(tmdb_id: int):
     """Remove a show that was added via discover from Sonarr."""
     async with httpx.AsyncClient() as client:
-        # Find the show by looking up via TMDb
         r = await client.get(
             f"{SONARR_URL}/api/v3/series/lookup",
             headers={"X-Api-Key": SONARR_KEY},
             params={"term": f"tmdb:{tmdb_id}"},
             timeout=15
         )
-        if r.status_code == 200 and r.json():
-            show_data = r.json()[0]
-            tvdb_id = show_data.get("tvdbId")
-            if tvdb_id:
-                # Find in Sonarr by tvdbId
-                sr = await client.get(
-                    f"{SONARR_URL}/api/v3/series",
-                    headers={"X-Api-Key": SONARR_KEY},
-                    timeout=30
-                )
-                if sr.status_code == 200:
-                    for s in sr.json():
-                        if s.get("tvdbId") == tvdb_id:
-                            await client.delete(
-                                f"{SONARR_URL}/api/v3/series/{s['id']}",
-                                headers={"X-Api-Key": SONARR_KEY},
-                                params={"deleteFiles": "true"},
-                                timeout=15
-                            )
-                            break
+        if r.status_code != 200 or not r.json():
+            raise HTTPException(status_code=404, detail="Show lookup failed")
+
+        tvdb_id = r.json()[0].get("tvdbId")
+        if not tvdb_id:
+            raise HTTPException(status_code=400, detail="Show lookup has no tvdbId")
+
+        r = await client.get(
+            f"{SONARR_URL}/api/v3/series",
+            headers={"X-Api-Key": SONARR_KEY},
+            timeout=30
+        )
+        if r.status_code != 200:
+            raise HTTPException(status_code=r.status_code, detail=f"Sonarr lookup failed: {r.text}")
+
+        show = next((s for s in r.json() if s.get("tvdbId") == tvdb_id), None)
+        if not show:
+            raise HTTPException(status_code=404, detail="Show is no longer in Sonarr")
+
+        r = await client.delete(
+            f"{SONARR_URL}/api/v3/series/{show['id']}",
+            headers={"X-Api-Key": SONARR_KEY},
+            params={"deleteFiles": "true"},
+            timeout=15
+        )
+        if r.status_code not in (200, 202, 204):
+            raise HTTPException(status_code=r.status_code, detail=f"Sonarr delete failed: {r.text}")
 
     # Remove from hidden
     hidden = load_hidden()

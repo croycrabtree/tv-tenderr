@@ -162,6 +162,13 @@ class HistoryActivity : AppCompatActivity() {
                         }
                     }
                 }
+            },
+            onUnclean = { item ->
+                if (historyMode == "shows") {
+                    api.uncleanShow(item.movieId) { ok, _ ->
+                        if (ok) runOnUiThread { allItems.removeAll { it.movieId == item.movieId }; refreshList() }
+                    }
+                }
             }
         )
     }
@@ -170,7 +177,8 @@ class HistoryActivity : AppCompatActivity() {
 class HistoryAdapter(
     private val items: List<HistoryItem>,
     private val onUnkeep: (HistoryItem) -> Unit,
-    private val onUnblock: (HistoryItem) -> Unit
+    private val onUnblock: (HistoryItem) -> Unit,
+    private val onUnclean: (HistoryItem) -> Unit
 ) : RecyclerView.Adapter<HistoryAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -195,21 +203,21 @@ class HistoryAdapter(
             "keep" -> {
                 holder.tvAction.text = "✓ KEPT (6mo)"
                 holder.tvAction.setTextColor(Color.parseColor("#2ecc71"))
-                holder.btnUndo.text = "Un-keep"
+                holder.btnUndo.text = historyUndoLabel(item.action)
                 holder.btnUndo.visibility = View.VISIBLE
                 holder.btnUndo.setOnClickListener { onUnkeep(item) }
             }
             "super_keep" -> {
                 holder.tvAction.text = "⭐ SUPER KEEP"
                 holder.tvAction.setTextColor(Color.parseColor("#f1c40f"))
-                holder.btnUndo.text = "Un-keep"
+                holder.btnUndo.text = historyUndoLabel(item.action)
                 holder.btnUndo.visibility = View.VISIBLE
                 holder.btnUndo.setOnClickListener { onUnkeep(item) }
             }
             "block" -> {
                 holder.tvAction.text = "✗ BLOCKED"
                 holder.tvAction.setTextColor(Color.parseColor("#e74c3c"))
-                holder.btnUndo.text = "Restore"
+                holder.btnUndo.text = historyUndoLabel(item.action)
                 holder.btnUndo.visibility = View.VISIBLE
                 holder.btnUndo.setOnClickListener { onUnblock(item) }
             }
@@ -221,19 +229,21 @@ class HistoryAdapter(
             "clean" -> {
                 holder.tvAction.text = "🧹 CLEANED"
                 holder.tvAction.setTextColor(Color.parseColor("#3498db"))
-                holder.btnUndo.visibility = View.GONE
+                holder.btnUndo.text = historyUndoLabel(item.action)
+                holder.btnUndo.visibility = View.VISIBLE
+                holder.btnUndo.setOnClickListener { onUnclean(item) }
             }
             "added" -> {
                 holder.tvAction.text = "⬇️ ADDED"
                 holder.tvAction.setTextColor(Color.parseColor("#2ecc71"))
-                holder.btnUndo.text = "Remove"
+                holder.btnUndo.text = historyUndoLabel(item.action)
                 holder.btnUndo.visibility = View.VISIBLE
                 holder.btnUndo.setOnClickListener { onUnkeep(item) }
             }
             "hidden" -> {
                 holder.tvAction.text = "✗ DISLIKED"
                 holder.tvAction.setTextColor(Color.parseColor("#e74c3c"))
-                holder.btnUndo.text = "Show Again"
+                holder.btnUndo.text = historyUndoLabel(item.action)
                 holder.btnUndo.visibility = View.VISIBLE
                 holder.btnUndo.setOnClickListener { onUnblock(item) }
             }

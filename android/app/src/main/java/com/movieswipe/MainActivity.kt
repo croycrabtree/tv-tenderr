@@ -448,7 +448,6 @@ class MainActivity : AppCompatActivity() {
                 val showIndex = currentIndex
                 animateCardOut(false) {
                     showUndoBanner("\"${show.title}\" files will be removed") {
-                        api.uncleanShow(show.id) { _, _ -> }
                         shows.add(showIndex, show)
                         currentIndex = showIndex
                         showCurrentCard()
@@ -572,7 +571,7 @@ class MainActivity : AppCompatActivity() {
         isLoading = true
         binding.tvStats.text = ""
 
-        api.getShows(skip = currentIndex, limit = 20) { response, error ->
+        api.getShows(skip = currentIndex, limit = 20, genre = currentGenre, minYear = currentMinYear, maxYear = currentMaxYear, minRating = currentMinRating, search = currentSearchQuery) { response, error ->
             runOnUiThread {
                 isLoading = false
                 if (error != null) {
